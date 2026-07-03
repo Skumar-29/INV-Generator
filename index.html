@@ -292,13 +292,23 @@
         <div class="panel">
           <h2>BD/RT/BT/AB Auto Rates</h2>
           <div id="typeRateList"></div>
-          <div class="hint">Two-column setup only: category on the left and rate on the right. Selecting BD/RT/BT/AB in an invoice row auto-fills this rate.</div>
+          <div class="row-actions">
+            <input id="newTypeRateName" placeholder="Add category, e.g. ABT" />
+            <input id="newTypeRateValue" inputmode="decimal" placeholder="Rate, e.g. 0.52" />
+            <button class="secondary small" id="addTypeRateBtn">Add category/rate</button>
+          </div>
+          <div class="hint">Add more BD/RT/BT/AB items here. These items appear in the invoice BD/RT/BT/AB dropdown, and their rates also appear in the Rate dropdown.</div>
           <div class="row-actions"><button class="secondary" id="saveTypeRatesBtn">Save BD/RT/BT/AB Rates</button></div>
         </div>
         <div class="panel">
           <h2>Miscellaneous Auto Rates</h2>
           <div id="miscRateList"></div>
-          <div class="hint">Set rates for Pick-up and Delivery. Selecting the item in Miscellaneous auto-fills this rate.</div>
+          <div class="row-actions">
+            <input id="newMiscRateName" placeholder="Add item, e.g. Waiting" />
+            <input id="newMiscRateValue" inputmode="decimal" placeholder="Rate, e.g. 50" />
+            <button class="secondary small" id="addMiscRateBtn">Add item/rate</button>
+          </div>
+          <div class="hint">Add more miscellaneous items here. These items appear in the Miscellaneous Item dropdown, and their rates also appear in the Rate dropdown.</div>
           <div class="row-actions"><button class="secondary" id="saveMiscRatesBtn">Save Miscellaneous Rates</button></div>
         </div>
       </div>
@@ -318,6 +328,8 @@
   <datalist id="typeOptions"></datalist>
   <datalist id="cityOptions"></datalist>
   <datalist id="miscItemOptions"></datalist>
+  <datalist id="loadRateOptions"></datalist>
+  <datalist id="miscRateOptions"></datalist>
 
   <div class="modal" id="invoiceActionModal">
     <div class="modal-card">
@@ -349,7 +361,7 @@
 <script>
 (() => {
   const STORAGE_KEY = 'aps_invoice_generator_v1';
-  const APP_VERSION = 'v6-clean-settings-ui';
+  const APP_VERSION = 'v7-rate-dropdown-add-items';
   const OLD_DEMO_PROFILE = {nameSg:'MANISH SIHAG', billTo:'SGGS PTY LTD', mobile:'0431793432', email:'Manishsihag0929gmail', bsb:'083338', accountNo:'766073879', abnAcn:'694611633'};
   const BLANK_PROFILE = {nameSg:'', billTo:'', mobile:'', email:'', bsb:'', accountNo:'', abnAcn:''};
   const DEFAULTS = {
@@ -434,9 +446,26 @@
       invoiceNo:formatInvoiceNo(state.settings.nextInvoiceNo||1), dateFrom:'', dateTo:'', yellowDate:'', loads:Array.from({length:9},newLoadRow), misc:Array.from({length:4},newMiscRow), notes:''
     };
   }
+  function uniqueValues(arr){
+    return [...new Set((arr||[]).map(v=>String(v||'').trim()).filter(Boolean))];
+  }
+  function configuredLoadRates(){
+    const ordered = (state.settings.types||[]).map(t => state.settings.typeRates && state.settings.typeRates[t]).concat(Object.values(state.settings.typeRates||{}));
+    return uniqueValues(ordered);
+  }
+  function configuredMiscRates(){
+    const ordered = (state.settings.miscItems||[]).map(t => state.settings.miscItemRates && state.settings.miscItemRates[t]).concat(Object.values(state.settings.miscItemRates||{}));
+    return uniqueValues(ordered);
+  }
   function refreshDatalists(){
-    const map = {typeOptions:state.settings.types, cityOptions:state.settings.cities, miscItemOptions:state.settings.miscItems};
-    Object.entries(map).forEach(([id,arr])=>{$(id).innerHTML = arr.map(v=>`<option value="${escapeHtml(v)}"></option>`).join('');});
+    const map = {
+      typeOptions:state.settings.types,
+      cityOptions:state.settings.cities,
+      miscItemOptions:state.settings.miscItems,
+      loadRateOptions:configuredLoadRates(),
+      miscRateOptions:configuredMiscRates()
+    };
+    Object.entries(map).forEach(([id,arr])=>{$(id).innerHTML = (arr||[]).map(v=>`<option value="${escapeHtml(v)}"></option>`).join('');});
   }
   function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
   function bindTabs(){
@@ -499,6 +528,8 @@
     if(key==='types') return state.settings.types || [];
     if(key==='cities') return state.settings.cities || [];
     if(key==='miscItems') return state.settings.miscItems || [];
+    if(key==='loadRates') return configuredLoadRates();
+    if(key==='miscRates') return configuredMiscRates();
     return [];
   }
   function bindOptionPickers(scope){
@@ -513,7 +544,7 @@
     });
   }
   function openOptionPicker(input,key){
-    const titles={types:'BD/RT/BT/AB',cities:'City',miscItems:'Miscellaneous item'};
+    const titles={types:'BD/RT/BT/AB',cities:'City',miscItems:'Miscellaneous item',loadRates:'Load rate',miscRates:'Miscellaneous rate'};
     $('optionPickerTitle').textContent='Select '+(titles[key]||'option');
     const opts=getOptionList(key);
     $('optionPickerList').innerHTML = opts.length ? opts.map(v=>`<button type="button" class="option-row" data-opt="${escapeHtml(v)}"><strong>${escapeHtml(v)}</strong></button>`).join('') : '<div class="empty">No saved options yet. Add options in Settings.</div>';
@@ -548,7 +579,7 @@
         <td><input class="num" ${inputAttrs('num')} data-load="odoStart" value="${escapeHtml(r.odoStart)}"></td>
         <td><input class="num" ${inputAttrs('num')} data-load="odoFinish" value="${escapeHtml(r.odoFinish)}"></td>
         <td><input class="num readonly" data-load="km" value="${escapeHtml(r.km)}" readonly></td>
-        <td><input class="money" ${inputAttrs('dec')} data-load="rate" value="${escapeHtml(r.rate)}" placeholder="Auto/manual"></td>
+        <td>${comboCell(r.rate,'data-load="rate"','loadRates','loadRateOptions',inputAttrs('dec')+' placeholder="Auto/manual"','money')}</td>
         <td><input class="money" ${inputAttrs('dec')} data-load="amount" value="${escapeHtml(r.amount)}" title="Manual edit allowed"></td>
         <td><button class="small danger" data-del-load="${i}">Delete</button></td>
       </tr>`).join('');
@@ -582,7 +613,7 @@
         <td><input ${inputAttrs('date')} data-misc="date" value="${escapeHtml(r.date)}"></td>
         <td>${comboCell(r.item,'data-misc="item"','miscItems','miscItemOptions')}</td>
         <td><input class="num" ${inputAttrs('dec')} data-misc="quantity" value="${escapeHtml(r.quantity)}"></td>
-        <td><input class="money" ${inputAttrs('dec')} data-misc="rate" value="${escapeHtml(r.rate)}" placeholder="Auto/manual"></td>
+        <td>${comboCell(r.rate,'data-misc="rate"','miscRates','miscRateOptions',inputAttrs('dec')+' placeholder="Auto/manual"','money')}</td>
         <td><input class="money" ${inputAttrs('dec')} data-misc="amount" value="${escapeHtml(r.amount)}"></td>
         <td><button class="small danger" data-del-misc="${i}">Delete</button></td>
       </tr>`).join('');
@@ -741,11 +772,29 @@
   }
   function saveTypeRates(){
     document.querySelectorAll('[data-rate-type]').forEach(inp=>{ state.settings.typeRates[inp.dataset.rateType] = inp.value.trim(); });
-    saveState(); showToast('BD/RT/BT/AB rates saved');
+    saveState(); refreshDatalists(); showToast('BD/RT/BT/AB rates saved');
   }
   function saveMiscRates(){
     document.querySelectorAll('[data-rate-misc]').forEach(inp=>{ state.settings.miscItemRates[inp.dataset.rateMisc] = inp.value.trim(); });
-    saveState(); showToast('Miscellaneous rates saved');
+    saveState(); refreshDatalists(); showToast('Miscellaneous rates saved');
+  }
+  function addTypeRateFromTable(){
+    const name = $('newTypeRateName').value.trim();
+    const rate = $('newTypeRateValue').value.trim();
+    if(!name){ showToast('Enter category name'); return; }
+    if(!state.settings.types.includes(name)) state.settings.types.push(name);
+    state.settings.typeRates[name] = rate;
+    $('newTypeRateName').value=''; $('newTypeRateValue').value='';
+    saveState(); refreshDatalists(); renderSettings(); showToast('Category/rate added');
+  }
+  function addMiscRateFromTable(){
+    const name = $('newMiscRateName').value.trim();
+    const rate = $('newMiscRateValue').value.trim();
+    if(!name){ showToast('Enter item name'); return; }
+    if(!state.settings.miscItems.includes(name)) state.settings.miscItems.push(name);
+    state.settings.miscItemRates[name] = rate;
+    $('newMiscRateName').value=''; $('newMiscRateValue').value='';
+    saveState(); refreshDatalists(); renderSettings(); showToast('Misc item/rate added');
   }
 
   function renderList(containerId,key){
@@ -1021,6 +1070,8 @@
     $('saveSettingsBtn').addEventListener('click',saveSettings);
     $('saveTypeRatesBtn').addEventListener('click',saveTypeRates);
     $('saveMiscRatesBtn').addEventListener('click',saveMiscRates);
+    $('addTypeRateBtn').addEventListener('click',addTypeRateFromTable);
+    $('addMiscRateBtn').addEventListener('click',addMiscRateFromTable);
     $('exportBackupBtn').addEventListener('click',exportBackup);
     $('importBackupBtn').addEventListener('click',()=>$('importBackupFile').click());
     $('importBackupFile').addEventListener('change',e=>importBackupFile(e.target.files[0]));

@@ -1,4 +1,4 @@
-const CACHE = 'invoice-generator-v6-clean-settings-ui';
+const CACHE = 'invoice-generator-v7-rate-dropdown-add-items';
 const ASSETS = ['./', './index.html', './manifest.json', './icon.svg'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
