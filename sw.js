@@ -1,4 +1,4 @@
-const CACHE = 'invoice-generator-v8-changeover-frozen-buttons';
+const CACHE = 'invoice-generator-v9-fixed-horizontal-header';
 const ASSETS = ['./', './index.html', './manifest.json', './icon.svg'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));

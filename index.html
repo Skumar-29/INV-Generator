@@ -21,7 +21,7 @@
       --radius:16px;
     }
     *{box-sizing:border-box}
-    html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+    html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;overflow-x:hidden}
     body{min-height:100vh;padding-bottom:env(safe-area-inset-bottom)}
     button,input,select,textarea{font:inherit}
     button{border:0;border-radius:12px;padding:11px 14px;background:var(--dark);color:#fff;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.12);cursor:pointer}
@@ -31,7 +31,7 @@
     button.danger{background:#a93428}
     button.small{padding:7px 10px;font-size:13px;border-radius:9px}
     button:disabled{opacity:.55;cursor:not-allowed}
-    .appbar{position:sticky;top:0;z-index:20;background:rgba(238,247,251,.96);backdrop-filter:blur(14px);border-bottom:1px solid rgba(72,180,216,.35);padding:10px 12px 8px}
+    .appbar{position:fixed;top:0;left:0;right:0;width:100vw;z-index:30;background:rgba(238,247,251,.96);backdrop-filter:blur(14px);border-bottom:1px solid rgba(72,180,216,.35);padding:10px 12px 8px;transform:translateZ(0)}
     .appbar-top{display:flex;align-items:center;gap:10px;justify-content:center;max-width:1180px;margin:0 auto}
     .brand{font-size:18px;font-weight:900;letter-spacing:.2px;color:var(--dark);text-align:center}
     .tabs{display:flex;gap:8px;overflow-x:auto;padding:8px 0 0;max-width:1180px;margin:0 auto;justify-content:center}
@@ -40,7 +40,7 @@
     .quick-actions{display:flex;gap:10px;justify-content:center;align-items:center;max-width:1180px;margin:0 auto;padding:9px 0 2px}
     .quick-actions button{min-width:120px;border-radius:999px}
     .quick-actions .primary-save{box-shadow:0 4px 14px rgba(23,111,139,.28)}
-    .wrap{max-width:1180px;margin:0 auto;padding:14px 12px 32px}
+    .wrap{max-width:1180px;margin:0 auto;padding:calc(var(--appbar-h,112px) + 14px) 12px 32px}
     .screen{display:none}
     .screen.active{display:block}
     .panel{background:#fff;border:1px solid rgba(72,180,216,.4);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;margin-bottom:14px}
@@ -486,11 +486,18 @@
   function bindTabs(){
     document.querySelectorAll('.tab').forEach(btn=>btn.addEventListener('click',()=>showScreen(btn.dataset.screen)));
   }
+  function updateAppbarOffset(){
+    const bar = document.querySelector('.appbar');
+    if(bar) document.documentElement.style.setProperty('--appbar-h', Math.ceil(bar.getBoundingClientRect().height) + 'px');
+  }
+  window.addEventListener('resize', updateAppbarOffset);
+  window.addEventListener('orientationchange', () => setTimeout(updateAppbarOffset, 250));
   function showScreen(name){
     document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.screen===name));
     document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
     $('screen'+name.charAt(0).toUpperCase()+name.slice(1)).classList.add('active');
     const quick = $('invoiceQuickActions'); if(quick) quick.style.display = name === 'edit' ? '' : 'none';
+    updateAppbarOffset();
     if(name==='preview') renderPreview();
     if(name==='all') renderInvoiceCards();
     if(name==='settings') renderSettings();
@@ -1123,6 +1130,7 @@
 
   function init(){
     bindTabs(); bindEvents(); refreshDatalists(); fillForm(); renderInvoiceCards(); renderSettings();
+    updateAppbarOffset();
     if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
   }
   init();

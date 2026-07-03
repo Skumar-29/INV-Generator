@@ -18,3 +18,6 @@ After upload, open your app with ?v=8 once, for example:
 https://invoice.apsprofencing.com.au/?v=8
 
 Then go to Settings -> Update App once if needed.
+
+
+Version 9: Fixed the frozen header/actions so they stay in place during horizontal as well as vertical scrolling.
