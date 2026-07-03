@@ -1,4 +1,4 @@
-const CACHE = 'invoice-generator-v12-keyboard-safe-dropdowns';
+const CACHE = 'invoice-generator-v13-dropdown-keeps-keyboard-closed';
 const ASSETS = ['./', './index.html', './manifest.json', './icon.svg'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
