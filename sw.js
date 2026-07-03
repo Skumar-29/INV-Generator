@@ -1,4 +1,4 @@
-const CACHE = 'invoice-generator-v1';
+const CACHE = 'invoice-generator-v2-gridlines';
 const ASSETS = ['./', './index.html', './manifest.json', './icon.svg'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
