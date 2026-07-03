@@ -1,4 +1,4 @@
-const CACHE = 'invoice-generator-v9-fixed-horizontal-header';
+const CACHE = 'invoice-generator-v10-header-only-freeze';
 const ASSETS = ['./', './index.html', './manifest.json', './icon.svg'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));

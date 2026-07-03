@@ -21,3 +21,6 @@ Then go to Settings -> Update App once if needed.
 
 
 Version 9: Fixed the frozen header/actions so they stay in place during horizontal as well as vertical scrolling.
+
+
+v10: Keeps only the top button/header area fixed. Invoice content scrolls normally; wide load/misc tables scroll inside their own boxes.
