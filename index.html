@@ -50,6 +50,7 @@
     input,select,textarea{width:100%;border:1px solid rgba(72,180,216,.8);border-radius:10px;background:#fff;padding:10px 10px;color:#102f3c;outline:none}
     input[type="date"]{text-align:left;-webkit-appearance:none;appearance:none}
     input[type="date"]::-webkit-date-and-time-value{text-align:left}
+    input::placeholder, textarea::placeholder{color:#9db0b9}
     input:focus,select:focus,textarea:focus{border-color:var(--dark);box-shadow:0 0 0 3px rgba(23,111,139,.14)}
     textarea{min-height:78px;resize:vertical}
     .hint{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.35}
@@ -63,13 +64,17 @@
     table.edit td{border:1px solid var(--line);padding:4px;background:#fff;vertical-align:middle}
     table.edit tr:nth-child(even) td{background:var(--light)}
     table.edit input, table.edit select{border-radius:8px;padding:8px;border-color:rgba(72,180,216,.9);background:rgba(255,255,255,.95)}
-    .combo-wrap{display:grid;grid-template-columns:minmax(0,1fr) 32px;gap:3px;align-items:center}
+    .combo-wrap{display:block}
     .combo-wrap input{min-width:0}
-    .combo-drop{padding:8px 0!important;min-width:30px;border-radius:8px!important;box-shadow:none!important;background:#fff!important;color:var(--dark)!important;border:1px solid rgba(72,180,216,.9)!important}
+    .combo-input{cursor:text}
     .option-list{display:grid;gap:7px;max-height:55vh;overflow:auto;padding-top:4px}
     .option-row{width:100%;text-align:left;background:#fff!important;color:#102f3c!important;border:1px solid rgba(72,180,216,.65)!important;box-shadow:none!important}
     .option-row strong{color:var(--dark)}
-    .rate-map-row{display:grid;grid-template-columns:90px minmax(0,1fr);gap:8px;align-items:center;margin-bottom:8px}
+    .rate-map-table{width:100%;border-collapse:collapse;margin-top:6px}
+    .rate-map-table th{background:var(--dark);color:#fff;text-align:left;padding:8px;border:1px solid var(--line);font-size:13px}
+    .rate-map-table td{border:1px solid var(--line);padding:6px;background:#fff}
+    .rate-map-table tr:nth-child(even) td{background:var(--light)}
+    .rate-map-table input{border-radius:8px;padding:8px}
     table.edit .money, table.edit .num{text-align:right}
     table.edit .readonly{background:#eef5f8!important;color:#335;opacity:.95}
     .totals-card{display:grid;gap:7px;padding:12px;border:1px solid rgba(72,180,216,.6);border-radius:13px;background:#f8fdff}
@@ -141,38 +146,39 @@
   <div class="appbar">
     <div class="appbar-top">
       <div class="brand">Invoice Generator</div>
-      <div class="row-actions" style="margin:0">
-        <button class="small secondary" id="newInvoiceBtn">New Invoice</button>
-        <button class="small secondary" id="updateAppBtnTop">Update</button>
-        <button class="small" id="saveInvoiceBtnTop">Save</button>
-      </div>
     </div>
     <div class="tabs" role="tablist">
       <button class="tab active" data-screen="edit">Invoice</button>
       <button class="tab" data-screen="all">All Invoices</button>
-      <button class="tab" data-screen="preview">Preview</button>
       <button class="tab" data-screen="settings">Settings</button>
     </div>
   </div>
 
   <div class="wrap">
     <section class="screen active" id="screenEdit">
+      <div class="panel no-print invoice-actions-panel">
+        <div class="row-actions" style="justify-content:flex-end;margin-top:0">
+          <button class="secondary" id="newInvoiceBtn">New Invoice</button>
+          <button class="secondary" id="previewBtnTop">Preview</button>
+          <button id="saveInvoiceBtnTop">Save</button>
+        </div>
+      </div>
       <div class="split">
         <div>
           <div class="panel">
             <h2>Top Details</h2>
             <div class="grid two">
-              <div class="field-name"><label>Name/SG No</label><input id="nameSg" autocomplete="name" /></div>
-              <div class="field-bill"><label>Bill To</label><input id="billTo" /></div>
-              <div class="field-mobile"><label>Mobile no.</label><input id="mobile" inputmode="numeric" pattern="[0-9 ]*" /></div>
-              <div class="field-invoice"><label>Invoice No.</label><input id="invoiceNo" inputmode="numeric" pattern="[0-9]*" /></div>
-              <div class="field-email"><label>Email id</label><input id="email" type="email" /></div>
+              <div class="field-name"><label>Name/SG No</label><input id="nameSg" autocomplete="name" placeholder="Example: Your name / SG no." /></div>
+              <div class="field-bill"><label>Bill To</label><input id="billTo" placeholder="Example: Customer / company name" /></div>
+              <div class="field-mobile"><label>Mobile no.</label><input id="mobile" inputmode="numeric" pattern="[0-9 ]*" placeholder="Example: 04xxxxxxxx" /></div>
+              <div class="field-invoice"><label>Invoice No.</label><input id="invoiceNo" inputmode="numeric" pattern="[0-9]*" placeholder="01" /></div>
+              <div class="field-email"><label>Email id</label><input id="email" type="email" placeholder="Example: name@email.com" /></div>
               <div class="field-date-from"><label>Date From</label><input id="dateFrom" type="date" /></div>
-              <div class="field-bsb"><label>BSB</label><input id="bsb" inputmode="numeric" pattern="[0-9 ]*" /></div>
+              <div class="field-bsb"><label>BSB</label><input id="bsb" inputmode="numeric" pattern="[0-9 ]*" placeholder="Example: 083338" /></div>
               <div class="field-date-to"><label>Date to</label><input id="dateTo" type="date" /></div>
-              <div class="field-account"><label>Account No</label><input id="accountNo" inputmode="numeric" pattern="[0-9 ]*" /></div>
+              <div class="field-account"><label>Account No</label><input id="accountNo" inputmode="numeric" pattern="[0-9 ]*" placeholder="Account number" /></div>
               <div class="field-yellow"><label>Yellow Pages Submitted (Till date)</label><input id="yellowDate" type="date" /></div>
-              <div class="field-abn"><label>ABN/ACN No</label><input id="abnAcn" inputmode="numeric" pattern="[0-9 ]*" /></div>
+              <div class="field-abn"><label>ABN/ACN No</label><input id="abnAcn" inputmode="numeric" pattern="[0-9 ]*" placeholder="ABN/ACN number" /></div>
             </div>
             <div class="row-actions">
               <button class="secondary" id="saveDefaultsBtn">Save top details as default</button>
@@ -265,43 +271,52 @@
 
     <section class="screen" id="screenSettings">
       <div class="panel">
-        <h2>Settings</h2>
+        <h2>Default Top Details</h2>
         <div class="grid two">
-          <div><label>Next invoice number</label><input id="settingNextNo" inputmode="numeric" pattern="[0-9]*" /></div>
-          <div><label>Default Bill To</label><input id="settingBillTo" /></div>
+          <div><label>Next invoice number</label><input id="settingNextNo" inputmode="numeric" pattern="[0-9]*" placeholder="01" /></div>
+          <div><label>Name/SG No</label><input id="settingNameSg" placeholder="Your name / SG no." /></div>
+          <div><label>Bill To</label><input id="settingBillTo" placeholder="Customer / company name" /></div>
+          <div><label>Mobile no.</label><input id="settingMobile" inputmode="numeric" pattern="[0-9 ]*" /></div>
+          <div><label>Email id</label><input id="settingEmail" type="email" /></div>
+          <div><label>BSB</label><input id="settingBsb" inputmode="numeric" pattern="[0-9 ]*" /></div>
+          <div><label>Account No</label><input id="settingAccountNo" inputmode="numeric" pattern="[0-9 ]*" /></div>
+          <div><label>ABN/ACN No</label><input id="settingAbnAcn" inputmode="numeric" pattern="[0-9 ]*" /></div>
         </div>
-        <div class="row-actions"><button id="saveSettingsBtn">Save Settings</button></div>
+        <div class="row-actions"><button id="saveSettingsBtn">Save Default Details</button><span class="hint">New invoices use these details until you update them.</span></div>
       </div>
       <div class="grid two">
         <div class="panel"><h2>BD/RT/BT/AB List</h2><div id="typeList" class="settings-list"></div><div class="row-actions"><input id="newType" placeholder="Add option" /><button class="secondary small" data-add-list="types">Add</button></div></div>
         <div class="panel"><h2>From / To City List</h2><div id="cityList" class="settings-list"></div><div class="row-actions"><input id="newCity" placeholder="Example: MEL" /><button class="secondary small" data-add-list="cities">Add</button></div></div>
-        <div class="panel"><h2>Rate List</h2><div id="rateList" class="settings-list"></div><div class="row-actions"><input id="newRate" inputmode="decimal" placeholder="Example: 0.55 or FIX PAY" /><button class="secondary small" data-add-list="rates">Add</button></div></div>
-        <div class="panel"><h2>Miscellaneous Item List</h2><div id="miscItemList" class="settings-list"></div><div class="row-actions"><input id="newMiscItem" placeholder="Example: Pick-up" /><button class="secondary small" data-add-list="miscItems">Add</button></div></div>
       </div>
       <div class="grid two">
         <div class="panel">
-          <h2>Auto Rate for BD/RT/BT/AB</h2>
+          <h2>BD/RT/BT/AB Auto Rates</h2>
           <div id="typeRateList"></div>
-          <div class="hint">When you select BD/RT/BT/AB in a load row, the app automatically fills the matching rate. You can update these rates anytime.</div>
-          <div class="row-actions"><button class="secondary" id="saveTypeRatesBtn">Save Auto Rates</button></div>
+          <div class="hint">Two-column setup only: category on the left and rate on the right. Selecting BD/RT/BT/AB in an invoice row auto-fills this rate.</div>
+          <div class="row-actions"><button class="secondary" id="saveTypeRatesBtn">Save BD/RT/BT/AB Rates</button></div>
         </div>
         <div class="panel">
-          <h2>Backup / Import / Update</h2>
-          <div class="row-actions">
-            <button class="secondary" id="exportBackupBtn">Export Backup</button>
-            <button class="secondary" id="importBackupBtn">Import Backup</button>
-            <button id="updateAppBtnSettings">Update App</button>
-          </div>
-          <input id="importBackupFile" type="file" accept="application/json,.json" style="display:none" />
-          <div class="hint">Backup saves all invoices, settings, drop-down lists, and auto rates as a JSON file. Update refreshes the app cache without deleting saved invoices.</div>
+          <h2>Miscellaneous Auto Rates</h2>
+          <div id="miscRateList"></div>
+          <div class="hint">Set rates for Pick-up and Delivery. Selecting the item in Miscellaneous auto-fills this rate.</div>
+          <div class="row-actions"><button class="secondary" id="saveMiscRatesBtn">Save Miscellaneous Rates</button></div>
         </div>
+      </div>
+      <div class="panel">
+        <h2>Backup / Import / Update</h2>
+        <div class="row-actions">
+          <button class="secondary" id="exportBackupBtn">Export Backup</button>
+          <button class="secondary" id="importBackupBtn">Import Backup</button>
+          <button id="updateAppBtnSettings">Update App</button>
+        </div>
+        <input id="importBackupFile" type="file" accept="application/json,.json" style="display:none" />
+        <div class="hint">Backup saves all invoices, settings, dropdown lists, and auto rates. On iPhone, Export Backup opens the share sheet so you can choose Save to Files and select the folder.</div>
       </div>
     </section>
   </div>
 
   <datalist id="typeOptions"></datalist>
   <datalist id="cityOptions"></datalist>
-  <datalist id="rateOptions"></datalist>
   <datalist id="miscItemOptions"></datalist>
 
   <div class="modal" id="invoiceActionModal">
@@ -323,7 +338,7 @@
   <div class="modal" id="optionPickerModal">
     <div class="modal-card">
       <h3 id="optionPickerTitle">Select option</h3>
-      <p>Single tap the box to type manually. Double tap the box or tap ▼ to choose from the saved list.</p>
+      <p>Single tap the box to type manually. Double tap the box to choose from the saved list.</p>
       <div class="option-list" id="optionPickerList"></div>
       <div class="row-actions"><button class="ghost" id="optionPickerCloseBtn">Close</button></div>
     </div>
@@ -334,14 +349,17 @@
 <script>
 (() => {
   const STORAGE_KEY = 'aps_invoice_generator_v1';
+  const APP_VERSION = 'v6-clean-settings-ui';
+  const OLD_DEMO_PROFILE = {nameSg:'MANISH SIHAG', billTo:'SGGS PTY LTD', mobile:'0431793432', email:'Manishsihag0929gmail', bsb:'083338', accountNo:'766073879', abnAcn:'694611633'};
+  const BLANK_PROFILE = {nameSg:'', billTo:'', mobile:'', email:'', bsb:'', accountNo:'', abnAcn:''};
   const DEFAULTS = {
     settings:{
-      profile:{nameSg:'MANISH SIHAG', billTo:'SGGS PTY LTD', mobile:'0431793432', email:'Manishsihag0929gmail', bsb:'083338', accountNo:'766073879', abnAcn:'694611633'},
-      nextInvoiceNo:25,
+      profile:{...BLANK_PROFILE},
+      nextInvoiceNo:1,
       types:['BD','RT','BT','AB'],
       typeRates:{BD:'0.52', RT:'0.55', BT:'0.55', AB:'0.55'},
+      miscItemRates:{'Pick-up':'', 'Delivery':''},
       cities:['MEL','BNE','SYD','ADL','Perth','PER','C/O','DAR','HOB','CBR','OOL','TSV','CNS'],
-      rates:['0.52','0.55','FIX PAY'],
       miscItems:['Pick-up','Delivery']
     },
     invoices:[]
@@ -354,6 +372,7 @@
   const $ = (id) => document.getElementById(id);
   const today = () => new Date().toISOString().slice(0,10);
   function uid(){ return 'inv_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,7); }
+  function formatInvoiceNo(n){ const s=String(n||1).trim(); return /^\d+$/.test(s) ? s.padStart(2,'0') : s; }
   function deepClone(v){ return JSON.parse(JSON.stringify(v)); }
   function loadState(){
     try{
@@ -367,8 +386,15 @@
     const out = deepClone(DEFAULTS);
     out.settings = {...out.settings, ...(data.settings||{})};
     out.settings.profile = {...out.settings.profile, ...((data.settings||{}).profile||{})};
-    for(const k of ['types','cities','rates','miscItems']) out.settings[k] = Array.isArray(out.settings[k]) ? out.settings[k] : DEFAULTS.settings[k];
+    for(const k of ['types','cities','miscItems']) out.settings[k] = Array.isArray(out.settings[k]) ? out.settings[k] : DEFAULTS.settings[k];
     out.settings.typeRates = {...DEFAULTS.settings.typeRates, ...(out.settings.typeRates||{})};
+    out.settings.miscItemRates = {...DEFAULTS.settings.miscItemRates, ...(out.settings.miscItemRates||{})};
+    // Remove the old sample/demo profile on first update if the user has not saved real invoices yet.
+    if(!Array.isArray(data.invoices) || data.invoices.length === 0){
+      const p = out.settings.profile || {};
+      const isOldDemo = Object.keys(OLD_DEMO_PROFILE).every(k => String(p[k]||'') === OLD_DEMO_PROFILE[k]);
+      if(isOldDemo) out.settings.profile = {...BLANK_PROFILE};
+    }
     out.invoices = Array.isArray(data.invoices) ? data.invoices : [];
     return out;
   }
@@ -405,11 +431,11 @@
     return {
       id:uid(), createdAt:new Date().toISOString(), updatedAt:new Date().toISOString(),
       nameSg:p.nameSg||'', billTo:p.billTo||'', mobile:p.mobile||'', email:p.email||'', bsb:p.bsb||'', accountNo:p.accountNo||'', abnAcn:p.abnAcn||'',
-      invoiceNo:String(state.settings.nextInvoiceNo||1), dateFrom:'', dateTo:'', yellowDate:'', loads:Array.from({length:9},newLoadRow), misc:Array.from({length:4},newMiscRow), notes:''
+      invoiceNo:formatInvoiceNo(state.settings.nextInvoiceNo||1), dateFrom:'', dateTo:'', yellowDate:'', loads:Array.from({length:9},newLoadRow), misc:Array.from({length:4},newMiscRow), notes:''
     };
   }
   function refreshDatalists(){
-    const map = {typeOptions:state.settings.types, cityOptions:state.settings.cities, rateOptions:state.settings.rates, miscItemOptions:state.settings.miscItems};
+    const map = {typeOptions:state.settings.types, cityOptions:state.settings.cities, miscItemOptions:state.settings.miscItems};
     Object.entries(map).forEach(([id,arr])=>{$(id).innerHTML = arr.map(v=>`<option value="${escapeHtml(v)}"></option>`).join('');});
   }
   function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
@@ -467,28 +493,27 @@
     return '';
   }
   function comboCell(value, dataAttr, optionKey, listId, extraAttrs='', cls=''){
-    return `<div class="combo-wrap"><input class="combo-input ${cls||''}" list="${listId}" ${extraAttrs||''} ${dataAttr} data-option-key="${optionKey}" value="${escapeHtml(value||'')}" title="Single tap to type. Double tap or tap ▼ for list."><button type="button" class="combo-drop" data-option-key="${optionKey}" title="Open list">▼</button></div>`;
+    return `<div class="combo-wrap"><input class="combo-input ${cls||''}" list="${listId}" ${extraAttrs||''} ${dataAttr} data-option-key="${optionKey}" value="${escapeHtml(value||'')}" title="Single tap to type. Double tap for list."></div>`;
   }
   function getOptionList(key){
     if(key==='types') return state.settings.types || [];
     if(key==='cities') return state.settings.cities || [];
-    if(key==='rates') return state.settings.rates || [];
     if(key==='miscItems') return state.settings.miscItems || [];
     return [];
   }
   function bindOptionPickers(scope){
     scope.querySelectorAll('.combo-input').forEach(inp=>{
       inp.addEventListener('dblclick',()=>openOptionPicker(inp, inp.dataset.optionKey));
-    });
-    scope.querySelectorAll('.combo-drop').forEach(btn=>{
-      btn.addEventListener('click',()=>{
-        const input = btn.parentElement.querySelector('.combo-input');
-        openOptionPicker(input, btn.dataset.optionKey);
-      });
+      let lastTap = 0;
+      inp.addEventListener('touchend',()=>{
+        const now = Date.now();
+        if(now - lastTap < 360){ openOptionPicker(inp, inp.dataset.optionKey); }
+        lastTap = now;
+      }, {passive:true});
     });
   }
   function openOptionPicker(input,key){
-    const titles={types:'BD/RT/BT/AB',cities:'City',rates:'Rate',miscItems:'Miscellaneous item'};
+    const titles={types:'BD/RT/BT/AB',cities:'City',miscItems:'Miscellaneous item'};
     $('optionPickerTitle').textContent='Select '+(titles[key]||'option');
     const opts=getOptionList(key);
     $('optionPickerList').innerHTML = opts.length ? opts.map(v=>`<button type="button" class="option-row" data-opt="${escapeHtml(v)}"><strong>${escapeHtml(v)}</strong></button>`).join('') : '<div class="empty">No saved options yet. Add options in Settings.</div>';
@@ -506,6 +531,11 @@
     if(!key) return '';
     return state.settings.typeRates[key] || state.settings.typeRates[key.toUpperCase()] || '';
   }
+  function getMiscAutoRate(item){
+    const key=String(item||'').trim();
+    if(!key) return '';
+    return state.settings.miscItemRates[key] || '';
+  }
 
   function renderLoadRows(){
     const tbody = $('loadTable').querySelector('tbody');
@@ -518,7 +548,7 @@
         <td><input class="num" ${inputAttrs('num')} data-load="odoStart" value="${escapeHtml(r.odoStart)}"></td>
         <td><input class="num" ${inputAttrs('num')} data-load="odoFinish" value="${escapeHtml(r.odoFinish)}"></td>
         <td><input class="num readonly" data-load="km" value="${escapeHtml(r.km)}" readonly></td>
-        <td>${comboCell(r.rate,'data-load="rate"','rates','rateOptions', inputAttrs('dec'), 'money')}</td>
+        <td><input class="money" ${inputAttrs('dec')} data-load="rate" value="${escapeHtml(r.rate)}" placeholder="Auto/manual"></td>
         <td><input class="money" ${inputAttrs('dec')} data-load="amount" value="${escapeHtml(r.amount)}" title="Manual edit allowed"></td>
         <td><button class="small danger" data-del-load="${i}">Delete</button></td>
       </tr>`).join('');
@@ -552,7 +582,7 @@
         <td><input ${inputAttrs('date')} data-misc="date" value="${escapeHtml(r.date)}"></td>
         <td>${comboCell(r.item,'data-misc="item"','miscItems','miscItemOptions')}</td>
         <td><input class="num" ${inputAttrs('dec')} data-misc="quantity" value="${escapeHtml(r.quantity)}"></td>
-        <td>${comboCell(r.rate,'data-misc="rate"','rates','rateOptions', inputAttrs('dec'), 'money')}</td>
+        <td><input class="money" ${inputAttrs('dec')} data-misc="rate" value="${escapeHtml(r.rate)}" placeholder="Auto/manual"></td>
         <td><input class="money" ${inputAttrs('dec')} data-misc="amount" value="${escapeHtml(r.amount)}"></td>
         <td><button class="small danger" data-del-misc="${i}">Delete</button></td>
       </tr>`).join('');
@@ -563,8 +593,17 @@
   function onMiscInput(e){
     const tr=e.target.closest('tr'), i=Number(tr.dataset.i), key=e.target.dataset.misc;
     current.misc[i][key]=e.target.value;
+    if(key==='item'){
+      const autoRate = getMiscAutoRate(e.target.value);
+      if(autoRate !== ''){
+        current.misc[i].rate = autoRate;
+        const rateInput = tr.querySelector('[data-misc="rate"]');
+        if(rateInput) rateInput.value = autoRate;
+        current.misc[i].manualAmount = false;
+      }
+    }
     if(key==='amount') current.misc[i].manualAmount=true;
-    if(['quantity','rate'].includes(key)) current.misc[i].manualAmount=false;
+    if(['quantity','rate','item'].includes(key)) current.misc[i].manualAmount=false;
     calculateMiscRow(current.misc[i]);
     const amt=tr.querySelector('[data-misc="amount"]'); if(!current.misc[i].manualAmount) amt.value=current.misc[i].amount||'';
     updateTotals();
@@ -679,51 +718,102 @@
   function loadInvoice(inv){ current=deepClone(inv); fillForm(); showScreen('edit'); }
 
   function renderSettings(){
-    $('settingNextNo').value=state.settings.nextInvoiceNo||1;
-    $('settingBillTo').value=state.settings.profile.billTo||'';
-    renderList('typeList','types'); renderList('cityList','cities'); renderList('rateList','rates'); renderList('miscItemList','miscItems'); renderTypeRates();
+    $('settingNextNo').value=formatInvoiceNo(state.settings.nextInvoiceNo||1);
+    const p=state.settings.profile||{};
+    $('settingNameSg').value=p.nameSg||'';
+    $('settingBillTo').value=p.billTo||'';
+    $('settingMobile').value=p.mobile||'';
+    $('settingEmail').value=p.email||'';
+    $('settingBsb').value=p.bsb||'';
+    $('settingAccountNo').value=p.accountNo||'';
+    $('settingAbnAcn').value=p.abnAcn||'';
+    renderList('typeList','types'); renderList('cityList','cities'); renderTypeRates(); renderMiscRates();
   }
   function renderTypeRates(){
     const box=$('typeRateList'); if(!box) return;
     const types=state.settings.types||[];
-    box.innerHTML = types.map(t=>`<div class="rate-map-row"><label style="margin:0">${escapeHtml(t)}</label><input inputmode="decimal" data-rate-type="${escapeHtml(t)}" value="${escapeHtml(state.settings.typeRates[t] || '')}" placeholder="Example: 0.52"></div>`).join('') || '<div class="empty">Add BD/RT/BT/AB options first.</div>';
+    box.innerHTML = types.length ? `<table class="rate-map-table"><thead><tr><th>BD/RT/BT/AB</th><th>Rate</th></tr></thead><tbody>${types.map(t=>`<tr><td><strong>${escapeHtml(t)}</strong></td><td><input inputmode="decimal" data-rate-type="${escapeHtml(t)}" value="${escapeHtml(state.settings.typeRates[t] || '')}" placeholder="Example: 0.52"></td></tr>`).join('')}</tbody></table>` : '<div class="empty">Add BD/RT/BT/AB options first.</div>';
+  }
+  function renderMiscRates(){
+    const box=$('miscRateList'); if(!box) return;
+    const items=state.settings.miscItems||[];
+    box.innerHTML = items.length ? `<table class="rate-map-table"><thead><tr><th>Item</th><th>Rate</th></tr></thead><tbody>${items.map(t=>`<tr><td><strong>${escapeHtml(t)}</strong></td><td><input inputmode="decimal" data-rate-misc="${escapeHtml(t)}" value="${escapeHtml(state.settings.miscItemRates[t] || '')}" placeholder="Example: 50"></td></tr>`).join('')}</tbody></table>` : '<div class="empty">No miscellaneous items.</div>';
   }
   function saveTypeRates(){
     document.querySelectorAll('[data-rate-type]').forEach(inp=>{ state.settings.typeRates[inp.dataset.rateType] = inp.value.trim(); });
-    saveState(); showToast('Auto rates saved');
+    saveState(); showToast('BD/RT/BT/AB rates saved');
+  }
+  function saveMiscRates(){
+    document.querySelectorAll('[data-rate-misc]').forEach(inp=>{ state.settings.miscItemRates[inp.dataset.rateMisc] = inp.value.trim(); });
+    saveState(); showToast('Miscellaneous rates saved');
   }
 
   function renderList(containerId,key){
     const arr=state.settings[key]||[];
     $(containerId).innerHTML=arr.map((v,i)=>`<div class="setting-row"><input value="${escapeHtml(v)}" data-list-key="${key}" data-list-i="${i}"><button class="small secondary" data-update-list="${key}" data-list-i="${i}">Update</button><button class="small danger" data-remove-list="${key}" data-list-i="${i}">Remove</button></div>`).join('');
     $(containerId).querySelectorAll('[data-update-list]').forEach(btn=>btn.addEventListener('click',()=>{
-      const input=btn.parentElement.querySelector('input'); const key=btn.dataset.updateList; const oldVal=state.settings[key][Number(btn.dataset.listI)]; const newVal=input.value.trim(); state.settings[key][Number(btn.dataset.listI)] = newVal; if(key==='types'){ state.settings.typeRates[newVal] = state.settings.typeRates[oldVal] || state.settings.typeRates[newVal] || ''; if(newVal!==oldVal) delete state.settings.typeRates[oldVal]; } saveState(); refreshDatalists(); renderSettings(); showToast('Drop-down updated');
+      const input=btn.parentElement.querySelector('input'); const key=btn.dataset.updateList; const oldVal=state.settings[key][Number(btn.dataset.listI)]; const newVal=input.value.trim(); state.settings[key][Number(btn.dataset.listI)] = newVal; if(key==='types'){ state.settings.typeRates[newVal] = state.settings.typeRates[oldVal] || state.settings.typeRates[newVal] || ''; if(newVal!==oldVal) delete state.settings.typeRates[oldVal]; } if(key==='miscItems'){ state.settings.miscItemRates[newVal] = state.settings.miscItemRates[oldVal] || state.settings.miscItemRates[newVal] || ''; if(newVal!==oldVal) delete state.settings.miscItemRates[oldVal]; } saveState(); refreshDatalists(); renderSettings(); showToast('Drop-down updated');
     }));
     $(containerId).querySelectorAll('[data-remove-list]').forEach(btn=>btn.addEventListener('click',()=>{
-      const key=btn.dataset.removeList; const removed=state.settings[key][Number(btn.dataset.listI)]; state.settings[key].splice(Number(btn.dataset.listI),1); if(key==='types') delete state.settings.typeRates[removed]; saveState(); refreshDatalists(); renderSettings(); showToast('Drop-down removed');
+      const key=btn.dataset.removeList; const removed=state.settings[key][Number(btn.dataset.listI)]; state.settings[key].splice(Number(btn.dataset.listI),1); if(key==='types') delete state.settings.typeRates[removed]; if(key==='miscItems') delete state.settings.miscItemRates[removed]; saveState(); refreshDatalists(); renderSettings(); showToast('Drop-down removed');
     }));
   }
   function addListItem(key,inputId){
     const val=$(inputId).value.trim(); if(!val) return;
     if(!state.settings[key].includes(val)) state.settings[key].push(val);
-    if(key==='types' && state.settings.typeRates[val] === undefined) state.settings.typeRates[val] = '';
+    if(key==='types' && state.settings.typeRates[val] === undefined) state.settings.typeRates[val] = ''; if(key==='miscItems' && state.settings.miscItemRates[val] === undefined) state.settings.miscItemRates[val] = ''; 
     $(inputId).value=''; saveState(); refreshDatalists(); renderSettings(); showToast('Drop-down option added');
   }
   function saveSettings(){
     state.settings.nextInvoiceNo = Math.max(1,parseInt($('settingNextNo').value,10)||1);
-    state.settings.profile.billTo = $('settingBillTo').value || '';
-    saveState(); showToast('Settings saved'); fillForm();
+    state.settings.profile = {
+      nameSg:$('settingNameSg').value || '',
+      billTo:$('settingBillTo').value || '',
+      mobile:$('settingMobile').value || '',
+      email:$('settingEmail').value || '',
+      bsb:$('settingBsb').value || '',
+      accountNo:$('settingAccountNo').value || '',
+      abnAcn:$('settingAbnAcn').value || ''
+    };
+    applyProfileToCurrent(true);
+    saveState(); fillForm(); showToast('Default details saved');
+  }
+  function applyProfileToCurrent(onlyBlank=true){
+    const p=state.settings.profile||{};
+    for(const k of ['nameSg','billTo','mobile','email','bsb','accountNo','abnAcn']){
+      if(!onlyBlank || !current[k]) current[k] = p[k] || '';
+    }
   }
 
   function backupFileName(){
     const stamp = new Date().toISOString().slice(0,19).replace(/[T:]/g,'-');
     return `Invoice-Generator-Backup-${stamp}.json`;
   }
-  function exportBackup(){
+  async function exportBackup(){
     collectForm(); saveCurrentInvoice(true);
-    const payload={app:'Invoice Generator', version:'v5-dropdown-backup-update', exportedAt:new Date().toISOString(), state};
-    downloadBlob(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}), backupFileName());
-    showToast('Backup exported');
+    const payload={app:'Invoice Generator', version:APP_VERSION, exportedAt:new Date().toISOString(), state};
+    const blob = new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+    const name = backupFileName();
+    try{
+      if(window.showSaveFilePicker){
+        const handle = await window.showSaveFilePicker({suggestedName:name, types:[{description:'JSON backup', accept:{'application/json':['.json']}}]});
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        showToast('Backup saved');
+        return;
+      }
+    }catch(e){ if(e && e.name === 'AbortError') return; }
+    try{
+      const file = new File([blob], name, {type:'application/json'});
+      if(navigator.canShare && navigator.canShare({files:[file]})){
+        await navigator.share({title:'Invoice Generator Backup', text:'Save this backup file to your selected folder.', files:[file]});
+        showToast('Choose Save to Files');
+        return;
+      }
+    }catch(e){}
+    downloadBlob(blob, name);
+    showToast('Backup downloaded');
   }
   function importBackupFile(file){
     if(!file) return;
@@ -918,6 +1008,7 @@
     $('newInvoiceBtn').addEventListener('click',startNewInvoice); $('newInvoiceBtn2').addEventListener('click',startNewInvoice);
     $('saveDefaultsBtn').addEventListener('click',saveDefaults);
     $('previewBtn').addEventListener('click',()=>showScreen('preview'));
+    $('previewBtnTop').addEventListener('click',()=>showScreen('preview'));
     $('exportPdfBtn').addEventListener('click',()=>{saveCurrentInvoice(true); exportPdf(); showToast('PDF exported');});
     $('downloadPdfBtn').addEventListener('click',()=>{saveCurrentInvoice(true); exportPdf();});
     $('exportExcelBtn').addEventListener('click',()=>{saveCurrentInvoice(true); exportExcel(); showToast('Excel exported');});
@@ -929,10 +1020,10 @@
     $('viewGridBtn').addEventListener('click',()=>{listMode='grid'; renderInvoiceCards();});
     $('saveSettingsBtn').addEventListener('click',saveSettings);
     $('saveTypeRatesBtn').addEventListener('click',saveTypeRates);
+    $('saveMiscRatesBtn').addEventListener('click',saveMiscRates);
     $('exportBackupBtn').addEventListener('click',exportBackup);
     $('importBackupBtn').addEventListener('click',()=>$('importBackupFile').click());
     $('importBackupFile').addEventListener('change',e=>importBackupFile(e.target.files[0]));
-    $('updateAppBtnTop').addEventListener('click',updateAppNow);
     $('updateAppBtnSettings').addEventListener('click',updateAppNow);
     $('optionPickerCloseBtn').addEventListener('click',closeOptionPicker);
     $('optionPickerModal').addEventListener('click',e=>{if(e.target.id==='optionPickerModal') closeOptionPicker();});

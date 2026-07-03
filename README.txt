@@ -1,24 +1,31 @@
-Invoice Generator App - v5 Dropdown, Auto Rates, Backup and Update
+Invoice Generator App - v6 Clean Settings UI
 
 Upload all files inside this folder to the root of your GitHub repository.
 Do not upload only the ZIP file.
 
 Important updates in this version:
-- Added visible dropdown buttons (▼) for From, To, BD/RT/BT/AB, Rate, and Miscellaneous Item fields.
-- Single tap/click still allows manual typing.
-- Double tap/double click the input, or tap ▼, to open the saved dropdown list.
-- Selecting BD/RT/BT/AB can now automatically fill the Rate field.
-- Settings now include Auto Rate for BD/RT/BT/AB, so rates can be updated later.
-- Added Export Backup and Import Backup for all invoices, settings, dropdown lists, and auto rates.
-- Added Update App button, similar to the Work Diary app, to refresh the app cache without deleting saved invoices.
-- Retains previous fixes: mobile top details order, PDF layout, no website link in PDF, 1-page PDF up to 10 load rows, clearer column lines, and proper top details alignment.
+- Removed dropdown arrow buttons next to fields.
+- Single tap/click on a field is for manual typing.
+- Double tap/double click on From, To, BD/RT/BT/AB, or Miscellaneous Item opens the saved dropdown list.
+- Removed old prefilled sample profile details for first-time use. New installs start blank with light placeholders.
+- First invoice number now starts as 01 unless changed in Settings.
+- Added Default Top Details inside Settings for Name/SG No, Bill To, Mobile, Email, BSB, Account No, ABN/ACN, and next invoice number.
+- Replaced large rate-list settings with small two-column rate setup tables.
+- BD/RT/BT/AB Auto Rates table: category on the left and rate on the right.
+- Miscellaneous Auto Rates table: Pick-up/Delivery item on the left and rate on the right.
+- Selecting BD/RT/BT/AB auto-fills the Load row rate.
+- Selecting Pick-up/Delivery auto-fills the Miscellaneous row rate.
+- Removed Update button from the top bar. Update App stays in Settings.
+- Top navigation now shows only Invoice, All Invoices, and Settings.
+- New Invoice, Preview, and Save buttons are shown on the Invoice screen.
+- Export Backup now tries to use a save-file/folder picker where supported, and on iPhone opens the share sheet so you can choose Save to Files and select a folder.
 
 After uploading to GitHub:
 1. Open the repository.
 2. Upload/replace index.html, manifest.json, sw.js, icon.svg, and README.txt in the root.
 3. Commit changes.
 4. Wait 1-5 minutes for GitHub Pages to update.
-5. Open the app and press Update, or open the app link with ?v=5 at the end.
+5. Open the app and press Settings > Update App, or open the app link with ?v=6 at the end.
 
 Example:
-https://your-app-link/?v=5
+https://your-app-link/?v=6
