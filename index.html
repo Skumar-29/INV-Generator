@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#176f8b" />
+  <title>Invoice Generator</title>
+  <link rel="manifest" href="manifest.json" />
+  <style>
+    :root{
+      --dark:#176f8b;
+      --line:#48b4d8;
+      --light:#c5e8f4;
+      --text:#183c4b;
+      --paper:#ffffff;
+      --muted:#647986;
+      --danger:#b3261e;
+      --ok:#1b7f4d;
+      --bg:#eef7fb;
+      --shadow:0 8px 28px rgba(0,0,0,.13);
+      --radius:16px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+    body{min-height:100vh;padding-bottom:env(safe-area-inset-bottom)}
+    button,input,select,textarea{font:inherit}
+    button{border:0;border-radius:12px;padding:11px 14px;background:var(--dark);color:#fff;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.12);cursor:pointer}
+    button.secondary{background:#fff;color:var(--dark);border:1px solid var(--line)}
+    button.ghost{background:transparent;color:var(--dark);border:1px solid rgba(23,111,139,.35);box-shadow:none}
+    button.warn{background:#8a5c00}
+    button.danger{background:#a93428}
+    button.small{padding:7px 10px;font-size:13px;border-radius:9px}
+    button:disabled{opacity:.55;cursor:not-allowed}
+    .appbar{position:sticky;top:0;z-index:20;background:rgba(238,247,251,.96);backdrop-filter:blur(14px);border-bottom:1px solid rgba(72,180,216,.35);padding:10px 12px 8px}
+    .appbar-top{display:flex;align-items:center;gap:10px;justify-content:space-between;max-width:1180px;margin:0 auto}
+    .brand{font-size:18px;font-weight:900;letter-spacing:.2px;color:var(--dark)}
+    .tabs{display:flex;gap:8px;overflow-x:auto;padding:8px 0 0;max-width:1180px;margin:0 auto}
+    .tab{white-space:nowrap;background:#fff;color:var(--dark);border:1px solid rgba(23,111,139,.3);box-shadow:none;padding:9px 12px}
+    .tab.active{background:var(--dark);color:#fff}
+    .wrap{max-width:1180px;margin:0 auto;padding:14px 12px 32px}
+    .screen{display:none}
+    .screen.active{display:block}
+    .panel{background:#fff;border:1px solid rgba(72,180,216,.4);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;margin-bottom:14px}
+    .panel h2{margin:0 0 10px;color:var(--dark);font-size:18px}
+    .grid{display:grid;gap:10px}
+    .two{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .three{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .four{grid-template-columns:repeat(4,minmax(0,1fr))}
+    label{display:block;font-weight:800;font-size:12px;color:#315569;margin:0 0 4px}
+    input,select,textarea{width:100%;border:1px solid rgba(72,180,216,.8);border-radius:10px;background:#fff;padding:10px 10px;color:#102f3c;outline:none}
+    input:focus,select:focus,textarea:focus{border-color:var(--dark);box-shadow:0 0 0 3px rgba(23,111,139,.14)}
+    textarea{min-height:78px;resize:vertical}
+    .hint{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.35}
+    .row-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
+    .status{padding:9px 11px;border-radius:11px;font-size:13px;background:#eaf8ef;color:var(--ok);font-weight:800;display:none}
+    .status.show{display:inline-flex}
+    .split{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:14px;align-items:start}
+    .table-scroll{overflow:auto;border:1px solid rgba(72,180,216,.6);border-radius:13px;background:#fff}
+    table.edit{border-collapse:collapse;min-width:980px;width:100%}
+    table.edit th{background:var(--dark);color:#fff;text-align:center;padding:9px 6px;font-size:13px;border:1px solid var(--dark)}
+    table.edit td{border:1px solid var(--line);padding:4px;background:#fff;vertical-align:middle}
+    table.edit tr:nth-child(even) td{background:var(--light)}
+    table.edit input, table.edit select{border-radius:8px;padding:8px;border-color:rgba(72,180,216,.9);background:rgba(255,255,255,.95)}
+    table.edit .money, table.edit .num{text-align:right}
+    table.edit .readonly{background:#eef5f8!important;color:#335;opacity:.95}
+    .totals-card{display:grid;gap:7px;padding:12px;border:1px solid rgba(72,180,216,.6);border-radius:13px;background:#f8fdff}
+    .total-line{display:flex;justify-content:space-between;gap:8px;font-weight:900;font-size:16px}
+    .total-line.grand{font-size:20px;color:var(--dark);border-top:2px solid var(--line);padding-top:8px;margin-top:4px}
+    .invoice-list-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:10px}
+    .cards.list{display:grid;gap:10px}
+    .cards.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+    .invoice-card{background:#fff;border:1px solid rgba(72,180,216,.55);border-radius:16px;box-shadow:0 4px 15px rgba(0,0,0,.08);padding:13px;cursor:pointer}
+    .invoice-card:hover{border-color:var(--dark)}
+    .invoice-card .title{font-weight:950;color:var(--dark);font-size:17px}
+    .invoice-card .meta{font-size:13px;color:var(--muted);line-height:1.4;margin-top:5px}
+    .invoice-card .amt{font-weight:950;font-size:18px;margin-top:8px;color:#102f3c}
+    .empty{padding:28px;text-align:center;color:var(--muted);border:1px dashed rgba(23,111,139,.4);border-radius:16px;background:#fff}
+    .preview-shell{overflow:auto;background:#dcecf2;border-radius:16px;padding:14px;border:1px solid rgba(72,180,216,.5)}
+    .invoice-paper{width:768px;min-height:1024px;background:white;margin:0 auto;padding:12px 13px 13px;color:#111;box-shadow:0 7px 30px rgba(0,0,0,.18);font-family:Arial,Helvetica,sans-serif}
+    .invoice-title{text-align:center;font-size:23px;font-weight:900;text-decoration:underline;margin:0 0 25px;color:#000}
+    .top-tables{display:grid;grid-template-columns:1fr 1.08fr;gap:92px;margin:0 7px 29px}
+    .info-table{border-collapse:collapse;width:100%;font-size:14px;font-weight:700;color:#27536a}
+    .info-table td{border:1px solid var(--line);height:27px;padding:4px 6px;vertical-align:middle}
+    .info-table tr:nth-child(even) td{background:var(--light)}
+    .info-table td:first-child{width:126px}
+    .main-invoice-table,.misc-table{border-collapse:collapse;width:100%;font-size:14px;table-layout:fixed}
+    .main-invoice-table th,.main-invoice-table td,.misc-table th,.misc-table td{border:1px solid var(--line);height:34px;padding:4px 6px;vertical-align:middle;overflow:hidden;word-break:break-word}
+    .main-invoice-table th{height:58px;background:var(--dark);color:#fff;font-weight:900;text-align:center;border-color:var(--dark)}
+    .main-invoice-table td{text-align:center}
+    .main-invoice-table tr.data:nth-child(even) td,.misc-table tr.data:nth-child(odd) td{background:var(--light)}
+    .main-invoice-table .total-label,.misc-table .total-label{background:var(--light);font-weight:900;text-align:center;font-size:16px;color:#111}
+    .misc-title{margin-top:22px;background:var(--dark);color:#fff;text-align:center;font-weight:900;padding:7px;border:1px solid var(--dark)}
+    .misc-table th{height:26px;background:var(--light);color:#111;text-align:left;font-weight:500}
+    .notes-box{margin:22px 3px 0;border-collapse:collapse;width:calc(100% - 6px);font-size:14px}
+    .notes-box td{border:1px solid #c4c4c4;height:22px;padding:2px 5px;color:#111}
+    .settings-list{display:grid;gap:8px}
+    .setting-row{display:grid;grid-template-columns:1fr auto auto;gap:7px;align-items:center}
+    .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#0d4f65;color:#fff;padding:12px 16px;border-radius:999px;box-shadow:var(--shadow);font-weight:800;z-index:50;opacity:0;pointer-events:none;transition:.22s}
+    .toast.show{opacity:1;bottom:34px}
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:40;display:none;align-items:center;justify-content:center;padding:15px}
+    .modal.show{display:flex}
+    .modal-card{width:min(420px,100%);background:#fff;border-radius:18px;padding:16px;box-shadow:var(--shadow)}
+    .modal-card h3{margin:0 0 8px;color:var(--dark)}
+    .modal-card p{margin:0 0 12px;color:var(--muted)}
+    @media(max-width:920px){
+      .split{grid-template-columns:1fr}
+      .two,.three,.four{grid-template-columns:1fr}
+      .top-tables{gap:20px}
+    }
+    @media print{
+      body{background:white}
+      .appbar,.wrap > .screen:not(#screenPreview),#screenPreview .panel:not(.print-panel),.no-print,.toast,.modal{display:none!important}
+      #screenPreview{display:block!important}
+      .wrap{padding:0;margin:0;max-width:none}
+      .preview-shell{padding:0;background:white;border:0;border-radius:0;overflow:visible}
+      .invoice-paper{box-shadow:none;margin:0;width:100%;min-height:auto;padding:12px 13px}
+      @page{size:A4 portrait;margin:8mm}
+    }
+  </style>
+</head>
+<body>
+  <div class="appbar">
+    <div class="appbar-top">
+      <div class="brand">Invoice Generator</div>
+      <div class="row-actions" style="margin:0">
+        <button class="small secondary" id="newInvoiceBtn">New Invoice</button>
+        <button class="small" id="saveInvoiceBtnTop">Save</button>
+      </div>
+    </div>
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-screen="edit">Invoice</button>
+      <button class="tab" data-screen="all">All Invoices</button>
+      <button class="tab" data-screen="preview">Preview</button>
+      <button class="tab" data-screen="settings">Settings</button>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <section class="screen active" id="screenEdit">
+      <div class="split">
+        <div>
+          <div class="panel">
+            <h2>Top Details</h2>
+            <div class="grid two">
+              <div><label>Name/SG No</label><input id="nameSg" autocomplete="name" /></div>
+              <div><label>Bill To</label><input id="billTo" /></div>
+              <div><label>Mobile no.</label><input id="mobile" inputmode="numeric" pattern="[0-9 ]*" /></div>
+              <div><label>Invoice No.</label><input id="invoiceNo" inputmode="numeric" pattern="[0-9]*" /></div>
+              <div><label>Email id</label><input id="email" type="email" /></div>
+              <div><label>Date From</label><input id="dateFrom" type="date" /></div>
+              <div><label>BSB</label><input id="bsb" inputmode="numeric" pattern="[0-9 ]*" /></div>
+              <div><label>Date to</label><input id="dateTo" type="date" /></div>
+              <div><label>Account No</label><input id="accountNo" inputmode="numeric" pattern="[0-9 ]*" /></div>
+              <div><label>Yellow Pages Submitted (Till date)</label><input id="yellowDate" type="date" /></div>
+              <div><label>ABN/ACN No</label><input id="abnAcn" inputmode="numeric" pattern="[0-9 ]*" /></div>
+            </div>
+            <div class="row-actions">
+              <button class="secondary" id="saveDefaultsBtn">Save top details as default</button>
+              <span class="hint">These details stay unchanged for future invoices until you update them.</span>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2>Load Details</h2>
+            <div class="table-scroll">
+              <table class="edit" id="loadTable">
+                <thead>
+                  <tr>
+                    <th style="width:105px">Load Date</th>
+                    <th style="width:95px">From</th>
+                    <th style="width:95px">To</th>
+                    <th style="width:95px">BD/RT/BT/AB</th>
+                    <th style="width:115px">Start Odometer</th>
+                    <th style="width:115px">Finish Odometer</th>
+                    <th style="width:90px">Quant./KM</th>
+                    <th style="width:100px">Rate</th>
+                    <th style="width:110px">Amount</th>
+                    <th style="width:70px">Action</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+            <div class="row-actions"><button class="secondary" id="addLoadRowBtn">Add load row</button><span class="hint">Amount auto-calculates when start odometer, finish odometer, and numeric rate are entered. You can still manually edit amount.</span></div>
+          </div>
+
+          <div class="panel">
+            <h2>Miscellaneous</h2>
+            <div class="table-scroll">
+              <table class="edit" id="miscTable" style="min-width:720px">
+                <thead>
+                  <tr>
+                    <th style="width:115px">Date</th><th>Item</th><th style="width:110px">Quantity</th><th style="width:110px">Rate</th><th style="width:130px">Amount</th><th style="width:70px">Action</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+            <div class="row-actions"><button class="secondary" id="addMiscRowBtn">Add miscellaneous row</button></div>
+          </div>
+
+          <div class="panel">
+            <h2>Notes</h2>
+            <textarea id="notes" placeholder="Notes"></textarea>
+            <div class="row-actions">
+              <button id="saveInvoiceBtn">Save Invoice</button>
+              <button class="secondary" id="previewBtn">Preview</button>
+              <button class="secondary" id="exportPdfBtn">Export PDF</button>
+              <button class="secondary" id="exportExcelBtn">Export Excel</button>
+            </div>
+          </div>
+        </div>
+        <aside class="totals-card">
+          <div class="total-line"><span>Main table total</span><span id="mainTotal">$0.00</span></div>
+          <div class="total-line"><span>Miscellaneous total</span><span id="miscTotal">$0.00</span></div>
+          <div class="total-line grand"><span>Grand total</span><span id="grandTotal">$0.00</span></div>
+          <div class="hint">PDF and Excel file name: Invoice number + from date + to date.</div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="screen" id="screenAll">
+      <div class="panel">
+        <div class="invoice-list-tools">
+          <h2 style="margin:0">All Invoices</h2>
+          <div class="row-actions" style="margin:0">
+            <button class="small secondary" id="viewListBtn">List</button>
+            <button class="small secondary" id="viewGridBtn">Grid</button>
+            <button class="small" id="newInvoiceBtn2">New Invoice</button>
+          </div>
+        </div>
+        <div id="invoiceCards" class="cards list"></div>
+      </div>
+    </section>
+
+    <section class="screen" id="screenPreview">
+      <div class="panel print-panel">
+        <div class="row-actions no-print" style="justify-content:space-between;margin-top:0;margin-bottom:12px">
+          <h2 style="margin:0">Invoice Preview</h2>
+          <div class="row-actions" style="margin:0"><button class="secondary" id="printBtn">Print / Save PDF</button><button id="downloadPdfBtn">Download PDF</button><button class="secondary" id="previewExcelBtn">Export Excel</button><button class="secondary" id="emailBtn">Send by email</button></div>
+        </div>
+        <div class="preview-shell"><div id="invoicePreview" class="invoice-paper"></div></div>
+      </div>
+    </section>
+
+    <section class="screen" id="screenSettings">
+      <div class="panel">
+        <h2>Settings</h2>
+        <div class="grid two">
+          <div><label>Next invoice number</label><input id="settingNextNo" inputmode="numeric" pattern="[0-9]*" /></div>
+          <div><label>Default Bill To</label><input id="settingBillTo" /></div>
+        </div>
+        <div class="row-actions"><button id="saveSettingsBtn">Save Settings</button></div>
+      </div>
+      <div class="grid two">
+        <div class="panel"><h2>BD/RT/BT/AB List</h2><div id="typeList" class="settings-list"></div><div class="row-actions"><input id="newType" placeholder="Add option" /><button class="secondary small" data-add-list="types">Add</button></div></div>
+        <div class="panel"><h2>From / To City List</h2><div id="cityList" class="settings-list"></div><div class="row-actions"><input id="newCity" placeholder="Example: MEL" /><button class="secondary small" data-add-list="cities">Add</button></div></div>
+        <div class="panel"><h2>Rate List</h2><div id="rateList" class="settings-list"></div><div class="row-actions"><input id="newRate" inputmode="decimal" placeholder="Example: 0.55 or FIX PAY" /><button class="secondary small" data-add-list="rates">Add</button></div></div>
+        <div class="panel"><h2>Miscellaneous Item List</h2><div id="miscItemList" class="settings-list"></div><div class="row-actions"><input id="newMiscItem" placeholder="Example: Pick-up" /><button class="secondary small" data-add-list="miscItems">Add</button></div></div>
+      </div>
+    </section>
+  </div>
+
+  <datalist id="typeOptions"></datalist>
+  <datalist id="cityOptions"></datalist>
+  <datalist id="rateOptions"></datalist>
+  <datalist id="miscItemOptions"></datalist>
+
+  <div class="modal" id="invoiceActionModal">
+    <div class="modal-card">
+      <h3 id="modalTitle">Invoice</h3>
+      <p id="modalDesc"></p>
+      <div class="row-actions">
+        <button id="modalPreviewBtn">Preview</button>
+        <button class="secondary" id="modalEditBtn">Edit</button>
+        <button class="secondary" id="modalPdfBtn">Export PDF</button>
+        <button class="secondary" id="modalExcelBtn">Export Excel</button>
+        <button class="secondary" id="modalEmailBtn">Email</button>
+        <button class="danger" id="modalDeleteBtn">Delete</button>
+        <button class="ghost" id="modalCloseBtn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Saved</div>
+
+<script>
+(() => {
+  const STORAGE_KEY = 'aps_invoice_generator_v1';
+  const DEFAULTS = {
+    settings:{
+      profile:{nameSg:'MANISH SIHAG', billTo:'SGGS PTY LTD', mobile:'0431793432', email:'Manishsihag0929gmail', bsb:'083338', accountNo:'766073879', abnAcn:'694611633'},
+      nextInvoiceNo:25,
+      types:['BD','RT','BT','AB'],
+      cities:['MEL','BNE','SYD','ADL','Perth','PER','C/O','DAR','HOB','CBR','OOL','TSV','CNS'],
+      rates:['0.52','0.55','FIX PAY'],
+      miscItems:['Pick-up','Delivery']
+    },
+    invoices:[]
+  };
+  let state = loadState();
+  let current = newInvoice();
+  let selectedInvoiceId = null;
+  let listMode = 'list';
+
+  const $ = (id) => document.getElementById(id);
+  const today = () => new Date().toISOString().slice(0,10);
+  function uid(){ return 'inv_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,7); }
+  function deepClone(v){ return JSON.parse(JSON.stringify(v)); }
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return deepClone(DEFAULTS);
+      const data = JSON.parse(raw);
+      return mergeDefaults(data);
+    }catch(e){ return deepClone(DEFAULTS); }
+  }
+  function mergeDefaults(data){
+    const out = deepClone(DEFAULTS);
+    out.settings = {...out.settings, ...(data.settings||{})};
+    out.settings.profile = {...out.settings.profile, ...((data.settings||{}).profile||{})};
+    for(const k of ['types','cities','rates','miscItems']) out.settings[k] = Array.isArray(out.settings[k]) ? out.settings[k] : DEFAULTS.settings[k];
+    out.invoices = Array.isArray(data.invoices) ? data.invoices : [];
+    return out;
+  }
+  function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  function showToast(msg='Saved'){
+    const t=$('toast'); t.textContent=msg; t.classList.add('show');
+    clearTimeout(showToast.timer); showToast.timer=setTimeout(()=>t.classList.remove('show'),1600);
+  }
+  function dateDisplay(iso){
+    if(!iso) return '';
+    const [y,m,d]=iso.split('-');
+    return `${d}/${m}/${String(y).slice(2)}`;
+  }
+  function dateLong(iso){
+    if(!iso) return '';
+    const [y,m,d]=iso.split('-');
+    return `${d}/${m}/${y}`;
+  }
+  function money(n){
+    const num = Number(n)||0;
+    return '$' + num.toFixed(2);
+  }
+  function cleanNumber(v){ return String(v||'').replace(/[^0-9.\-]/g,''); }
+  function parseNum(v){
+    if(v === undefined || v === null) return 0;
+    const s = String(v).replace(/,/g,'').match(/-?\d+(\.\d+)?/);
+    return s ? Number(s[0]) : 0;
+  }
+  function isNumericRate(v){ return /\d/.test(String(v||'')); }
+  function newLoadRow(){ return {loadDate:'', from:'', to:'', type:'', odoStart:'', odoFinish:'', km:'', rate:'', amount:'', manualAmount:false}; }
+  function newMiscRow(){ return {date:'', item:'', quantity:'', rate:'', amount:'', manualAmount:false}; }
+  function newInvoice(){
+    const p = state.settings.profile;
+    return {
+      id:uid(), createdAt:new Date().toISOString(), updatedAt:new Date().toISOString(),
+      nameSg:p.nameSg||'', billTo:p.billTo||'', mobile:p.mobile||'', email:p.email||'', bsb:p.bsb||'', accountNo:p.accountNo||'', abnAcn:p.abnAcn||'',
+      invoiceNo:String(state.settings.nextInvoiceNo||1), dateFrom:'', dateTo:'', yellowDate:'', loads:Array.from({length:9},newLoadRow), misc:Array.from({length:4},newMiscRow), notes:''
+    };
+  }
+  function refreshDatalists(){
+    const map = {typeOptions:state.settings.types, cityOptions:state.settings.cities, rateOptions:state.settings.rates, miscItemOptions:state.settings.miscItems};
+    Object.entries(map).forEach(([id,arr])=>{$(id).innerHTML = arr.map(v=>`<option value="${escapeHtml(v)}"></option>`).join('');});
+  }
+  function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
+  function bindTabs(){
+    document.querySelectorAll('.tab').forEach(btn=>btn.addEventListener('click',()=>showScreen(btn.dataset.screen)));
+  }
+  function showScreen(name){
+    document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.screen===name));
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    $('screen'+name.charAt(0).toUpperCase()+name.slice(1)).classList.add('active');
+    if(name==='preview') renderPreview();
+    if(name==='all') renderInvoiceCards();
+    if(name==='settings') renderSettings();
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  function fillForm(){
+    for(const id of ['nameSg','billTo','mobile','invoiceNo','email','bsb','accountNo','abnAcn','dateFrom','dateTo','yellowDate','notes']) $(id).value = current[id] || '';
+    renderLoadRows(); renderMiscRows(); updateTotals(); renderPreview();
+  }
+  function collectForm(){
+    for(const id of ['nameSg','billTo','mobile','invoiceNo','email','bsb','accountNo','abnAcn','dateFrom','dateTo','yellowDate','notes']) current[id] = $(id).value || '';
+    current.updatedAt = new Date().toISOString();
+    calculateAll();
+    return current;
+  }
+  function calculateLoadRow(r){
+    const start = parseNum(r.odoStart), finish = parseNum(r.odoFinish);
+    if(r.odoStart !== '' && r.odoFinish !== '') r.km = Math.max(0, finish - start).toString();
+    if(!r.manualAmount && isNumericRate(r.rate)) r.amount = ((parseNum(r.km) || 0) * parseNum(r.rate)).toFixed(2);
+    return r;
+  }
+  function calculateMiscRow(r){
+    if(!r.manualAmount && (r.quantity !== '' || r.rate !== '')) r.amount = ((parseNum(r.quantity)||0) * (parseNum(r.rate)||0)).toFixed(2);
+    return r;
+  }
+  function calculateAll(){
+    current.loads.forEach(calculateLoadRow);
+    current.misc.forEach(calculateMiscRow);
+  }
+  function invoiceTotals(inv=current){
+    const main = inv.loads.reduce((s,r)=>s+parseNum(r.amount),0);
+    const misc = inv.misc.reduce((s,r)=>s+parseNum(r.amount),0);
+    return {main,misc,grand:main+misc};
+  }
+  function updateTotals(){
+    calculateAll();
+    const t=invoiceTotals();
+    $('mainTotal').textContent=money(t.main); $('miscTotal').textContent=money(t.misc); $('grandTotal').textContent=money(t.grand);
+    renderPreview();
+  }
+  function inputAttrs(type){
+    if(type==='date') return 'type="date"';
+    if(type==='num') return 'inputmode="numeric" pattern="[0-9]*"';
+    if(type==='dec') return 'inputmode="decimal"';
+    return '';
+  }
+  function renderLoadRows(){
+    const tbody = $('loadTable').querySelector('tbody');
+    tbody.innerHTML = current.loads.map((r,i)=>`
+      <tr data-i="${i}">
+        <td><input ${inputAttrs('date')} data-load="loadDate" value="${escapeHtml(r.loadDate)}"></td>
+        <td><input list="cityOptions" data-load="from" value="${escapeHtml(r.from)}"></td>
+        <td><input list="cityOptions" data-load="to" value="${escapeHtml(r.to)}"></td>
+        <td><input list="typeOptions" data-load="type" value="${escapeHtml(r.type)}"></td>
+        <td><input class="num" ${inputAttrs('num')} data-load="odoStart" value="${escapeHtml(r.odoStart)}"></td>
+        <td><input class="num" ${inputAttrs('num')} data-load="odoFinish" value="${escapeHtml(r.odoFinish)}"></td>
+        <td><input class="num readonly" data-load="km" value="${escapeHtml(r.km)}" readonly></td>
+        <td><input class="money" list="rateOptions" ${inputAttrs('dec')} data-load="rate" value="${escapeHtml(r.rate)}"></td>
+        <td><input class="money" ${inputAttrs('dec')} data-load="amount" value="${escapeHtml(r.amount)}" title="Manual edit allowed"></td>
+        <td><button class="small danger" data-del-load="${i}">Delete</button></td>
+      </tr>`).join('');
+    tbody.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',onLoadInput));
+    tbody.querySelectorAll('[data-del-load]').forEach(btn=>btn.addEventListener('click',()=>{ current.loads.splice(Number(btn.dataset.delLoad),1); if(current.loads.length<1) current.loads.push(newLoadRow()); renderLoadRows(); updateTotals(); }));
+  }
+  function onLoadInput(e){
+    const tr=e.target.closest('tr'), i=Number(tr.dataset.i), key=e.target.dataset.load;
+    current.loads[i][key]=e.target.value;
+    if(key==='amount') current.loads[i].manualAmount = true;
+    if(['odoStart','odoFinish','rate'].includes(key)) current.loads[i].manualAmount = false;
+    calculateLoadRow(current.loads[i]);
+    const km=tr.querySelector('[data-load="km"]'); const amt=tr.querySelector('[data-load="amount"]');
+    km.value=current.loads[i].km||''; if(!current.loads[i].manualAmount) amt.value=current.loads[i].amount||'';
+    updateTotals();
+  }
+  function renderMiscRows(){
+    const tbody = $('miscTable').querySelector('tbody');
+    tbody.innerHTML = current.misc.map((r,i)=>`
+      <tr data-i="${i}">
+        <td><input ${inputAttrs('date')} data-misc="date" value="${escapeHtml(r.date)}"></td>
+        <td><input list="miscItemOptions" data-misc="item" value="${escapeHtml(r.item)}"></td>
+        <td><input class="num" ${inputAttrs('dec')} data-misc="quantity" value="${escapeHtml(r.quantity)}"></td>
+        <td><input class="money" list="rateOptions" ${inputAttrs('dec')} data-misc="rate" value="${escapeHtml(r.rate)}"></td>
+        <td><input class="money" ${inputAttrs('dec')} data-misc="amount" value="${escapeHtml(r.amount)}"></td>
+        <td><button class="small danger" data-del-misc="${i}">Delete</button></td>
+      </tr>`).join('');
+    tbody.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',onMiscInput));
+    tbody.querySelectorAll('[data-del-misc]').forEach(btn=>btn.addEventListener('click',()=>{ current.misc.splice(Number(btn.dataset.delMisc),1); if(current.misc.length<1) current.misc.push(newMiscRow()); renderMiscRows(); updateTotals(); }));
+  }
+  function onMiscInput(e){
+    const tr=e.target.closest('tr'), i=Number(tr.dataset.i), key=e.target.dataset.misc;
+    current.misc[i][key]=e.target.value;
+    if(key==='amount') current.misc[i].manualAmount=true;
+    if(['quantity','rate'].includes(key)) current.misc[i].manualAmount=false;
+    calculateMiscRow(current.misc[i]);
+    const amt=tr.querySelector('[data-misc="amount"]'); if(!current.misc[i].manualAmount) amt.value=current.misc[i].amount||'';
+    updateTotals();
+  }
+  function saveCurrentInvoice(silent=false){
+    collectForm();
+    const idx = state.invoices.findIndex(x=>x.id===current.id);
+    const copy=deepClone(current);
+    if(idx>=0) state.invoices[idx]=copy; else state.invoices.unshift(copy);
+    const no = parseInt(current.invoiceNo,10);
+    if(Number.isFinite(no) && no >= Number(state.settings.nextInvoiceNo||1)) state.settings.nextInvoiceNo = no + 1;
+    saveState();
+    renderInvoiceCards(); renderSettings(); renderPreview();
+    if(!silent) showToast('Invoice saved');
+  }
+  function startNewInvoice(){
+    saveCurrentInvoice(true);
+    current = newInvoice();
+    fillForm();
+    showScreen('edit');
+    showToast('New invoice ready');
+  }
+  function saveDefaults(){
+    collectForm();
+    state.settings.profile = {nameSg:current.nameSg,billTo:current.billTo,mobile:current.mobile,email:current.email,bsb:current.bsb,accountNo:current.accountNo,abnAcn:current.abnAcn};
+    saveState(); showToast('Default top details saved');
+  }
+  function renderPreview(inv=current){
+    calculateAll();
+    const t=invoiceTotals(inv);
+    const loads = padRows(inv.loads,9,newLoadRow());
+    const misc = padRows(inv.misc,4,newMiscRow());
+    const notes = String(inv.notes||'').split(/\n/).slice(0,3);
+    while(notes.length<3) notes.push('');
+    $('invoicePreview').innerHTML = `
+      <div class="invoice-title">INVOICE</div>
+      <div class="top-tables">
+        <table class="info-table"><tbody>
+          ${infoRow('Name/SG No:',inv.nameSg)}${infoRow('Mobile no.',inv.mobile)}${infoRow('Email id:',inv.email)}${infoRow('BSB',inv.bsb)}${infoRow('Account No',inv.accountNo)}${infoRow('ABN/ACN No',inv.abnAcn)}
+        </tbody></table>
+        <table class="info-table"><tbody>
+          ${infoRow('Bill To:',inv.billTo)}${infoRow('Invoice No.:',inv.invoiceNo)}${infoRow('Date From:',dateDisplay(inv.dateFrom))}${infoRow('Date to:',dateDisplay(inv.dateTo))}${infoRow('Yello Pages<br>Submitted (Till date)',dateLong(inv.yellowDate))}
+        </tbody></table>
+      </div>
+      <table class="main-invoice-table">
+        <colgroup><col style="width:12%"><col style="width:9.5%"><col style="width:9.5%"><col style="width:11%"><col style="width:11%"><col style="width:11%"><col style="width:12%"><col style="width:11%"><col style="width:13%"></colgroup>
+        <thead><tr><th>Load Date</th><th>From</th><th>To</th><th>BD/RT/<br>BT/AB</th><th colspan="2">Odometer<br>Reading</th><th>Quant./KM</th><th>Rate</th><th>Amount</th></tr></thead>
+        <tbody>
+          ${loads.map(r=>`<tr class="data"><td>${escapeHtml(dateDisplay(r.loadDate))}</td><td>${escapeHtml(r.from)}</td><td>${escapeHtml(r.to)}</td><td>${escapeHtml(r.type)}</td><td>${escapeHtml(r.odoStart)}</td><td>${escapeHtml(r.odoFinish)}</td><td>${escapeHtml(r.km)}</td><td>${formatRate(r.rate)}</td><td>${r.amount?money(parseNum(r.amount)):''}</td></tr>`).join('')}
+          <tr><td class="total-label" colspan="8">TOTAL</td><td class="total-label">${money(t.main)}</td></tr>
+        </tbody>
+      </table>
+      <div class="misc-title">MISCELLANEOUS</div>
+      <table class="misc-table">
+        <colgroup><col style="width:20%"><col style="width:36%"><col style="width:14%"><col style="width:11%"><col style="width:19%"></colgroup>
+        <thead><tr><th>Date</th><th>ITEM</th><th>QUANTITY</th><th>RATE</th><th>AMOUNT</th></tr></thead>
+        <tbody>
+          ${misc.map(r=>`<tr class="data"><td>${escapeHtml(dateDisplay(r.date))}</td><td>${escapeHtml(r.item)}</td><td>${escapeHtml(r.quantity)}</td><td>${formatRate(r.rate)}</td><td>${r.amount?money(parseNum(r.amount)):''}</td></tr>`).join('')}
+          <tr><td class="total-label" colspan="4">TOTAL</td><td class="total-label">${money(t.misc)}</td></tr>
+        </tbody>
+      </table>
+      <table class="notes-box"><tbody><tr><td>NOTES</td></tr>${notes.map(n=>`<tr><td>${escapeHtml(n)}</td></tr>`).join('')}</tbody></table>
+    `;
+  }
+  function padRows(arr,len,blank){
+    const out = deepClone(arr||[]).filter(r=>Object.values(r).some(v=>v!=='' && v!==false));
+    while(out.length<len) out.push(deepClone(blank));
+    return out.slice(0,Math.max(len,out.length));
+  }
+  function infoRow(label,value){ return `<tr><td>${label}</td><td>${escapeHtml(value)}</td></tr>`; }
+  function formatRate(v){
+    if(!v) return '';
+    const s=String(v);
+    if(/^\$/.test(s)) return escapeHtml(s);
+    return isNumericRate(s) && !/[a-zA-Z]/.test(s) ? '$'+parseNum(s).toFixed(2).replace(/\.00$/,'') : escapeHtml(s);
+  }
+  function renderInvoiceCards(){
+    const box=$('invoiceCards'); box.className='cards '+listMode;
+    if(!state.invoices.length){ box.innerHTML='<div class="empty">No saved invoices yet.</div>'; return; }
+    box.innerHTML = state.invoices.map(inv=>{
+      const t=invoiceTotals(inv);
+      return `<div class="invoice-card" data-id="${inv.id}"><div class="title">Invoice-${escapeHtml(inv.invoiceNo||'')}</div><div class="meta">${escapeHtml(dateLong(inv.dateFrom))} to ${escapeHtml(dateLong(inv.dateTo))}<br>Bill To: ${escapeHtml(inv.billTo||'')}<br>Updated: ${new Date(inv.updatedAt||inv.createdAt).toLocaleString()}</div><div class="amt">${money(t.grand)}</div></div>`;
+    }).join('');
+    box.querySelectorAll('.invoice-card').forEach(card=>card.addEventListener('click',()=>openInvoiceModal(card.dataset.id)));
+  }
+  function openInvoiceModal(id){
+    selectedInvoiceId=id;
+    const inv=state.invoices.find(x=>x.id===id); if(!inv) return;
+    $('modalTitle').textContent='Invoice-'+(inv.invoiceNo||'');
+    $('modalDesc').textContent=`${dateLong(inv.dateFrom)} to ${dateLong(inv.dateTo)} • ${money(invoiceTotals(inv).grand)}`;
+    $('invoiceActionModal').classList.add('show');
+  }
+  function closeModal(){ $('invoiceActionModal').classList.remove('show'); }
+  function selectedInv(){ return state.invoices.find(x=>x.id===selectedInvoiceId); }
+  function loadInvoice(inv){ current=deepClone(inv); fillForm(); showScreen('edit'); }
+
+  function renderSettings(){
+    $('settingNextNo').value=state.settings.nextInvoiceNo||1;
+    $('settingBillTo').value=state.settings.profile.billTo||'';
+    renderList('typeList','types'); renderList('cityList','cities'); renderList('rateList','rates'); renderList('miscItemList','miscItems');
+  }
+  function renderList(containerId,key){
+    const arr=state.settings[key]||[];
+    $(containerId).innerHTML=arr.map((v,i)=>`<div class="setting-row"><input value="${escapeHtml(v)}" data-list-key="${key}" data-list-i="${i}"><button class="small secondary" data-update-list="${key}" data-list-i="${i}">Update</button><button class="small danger" data-remove-list="${key}" data-list-i="${i}">Remove</button></div>`).join('');
+    $(containerId).querySelectorAll('[data-update-list]').forEach(btn=>btn.addEventListener('click',()=>{
+      const input=btn.parentElement.querySelector('input'); state.settings[btn.dataset.updateList][Number(btn.dataset.listI)] = input.value.trim(); saveState(); refreshDatalists(); renderSettings(); showToast('Drop-down updated');
+    }));
+    $(containerId).querySelectorAll('[data-remove-list]').forEach(btn=>btn.addEventListener('click',()=>{
+      state.settings[btn.dataset.removeList].splice(Number(btn.dataset.listI),1); saveState(); refreshDatalists(); renderSettings(); showToast('Drop-down removed');
+    }));
+  }
+  function addListItem(key,inputId){
+    const val=$(inputId).value.trim(); if(!val) return;
+    if(!state.settings[key].includes(val)) state.settings[key].push(val);
+    $(inputId).value=''; saveState(); refreshDatalists(); renderSettings(); showToast('Drop-down option added');
+  }
+  function saveSettings(){
+    state.settings.nextInvoiceNo = Math.max(1,parseInt($('settingNextNo').value,10)||1);
+    state.settings.profile.billTo = $('settingBillTo').value || '';
+    saveState(); showToast('Settings saved'); fillForm();
+  }
+
+  function filename(inv=current, ext='pdf'){
+    const no = String(inv.invoiceNo||'').replace(/[^a-zA-Z0-9_-]/g,'');
+    const from = dateLong(inv.dateFrom).replace(/\//g,'-') || 'date-from';
+    const to = dateLong(inv.dateTo).replace(/\//g,'-') || 'date-to';
+    return `Invoice-${no} (${from} to ${to}).${ext}`;
+  }
+  function downloadBlob(blob,name){
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click();
+    setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},700);
+  }
+  function exportExcel(inv=current){
+    calculateAll();
+    const t=invoiceTotals(inv);
+    const loads=padRows(inv.loads,9,newLoadRow()); const misc=padRows(inv.misc,4,newMiscRow());
+    const html=`<html><head><meta charset="utf-8"><style>table{border-collapse:collapse;font-family:Arial}td,th{border:1px solid #48b4d8;padding:6px}th{background:#176f8b;color:white}.light{background:#c5e8f4}.total{font-weight:bold;background:#c5e8f4}</style></head><body>
+    <h2>INVOICE</h2><table><tr><td>Name/SG No</td><td>${escapeHtml(inv.nameSg)}</td><td>Bill To</td><td>${escapeHtml(inv.billTo)}</td></tr><tr class="light"><td>Mobile no.</td><td>${escapeHtml(inv.mobile)}</td><td>Invoice No.</td><td>${escapeHtml(inv.invoiceNo)}</td></tr><tr><td>Email id</td><td>${escapeHtml(inv.email)}</td><td>Date From</td><td>${dateDisplay(inv.dateFrom)}</td></tr><tr class="light"><td>BSB</td><td>${escapeHtml(inv.bsb)}</td><td>Date to</td><td>${dateDisplay(inv.dateTo)}</td></tr><tr><td>Account No</td><td>${escapeHtml(inv.accountNo)}</td><td>Yello Pages Submitted</td><td>${dateLong(inv.yellowDate)}</td></tr><tr class="light"><td>ABN/ACN No</td><td>${escapeHtml(inv.abnAcn)}</td><td></td><td></td></tr></table>
+    <br><table><tr><th>Load Date</th><th>From</th><th>To</th><th>BD/RT/BT/AB</th><th>Start Odometer</th><th>Finish Odometer</th><th>Quant./KM</th><th>Rate</th><th>Amount</th></tr>${loads.map((r,i)=>`<tr class="${i%2?'':'light'}"><td>${dateDisplay(r.loadDate)}</td><td>${escapeHtml(r.from)}</td><td>${escapeHtml(r.to)}</td><td>${escapeHtml(r.type)}</td><td>${escapeHtml(r.odoStart)}</td><td>${escapeHtml(r.odoFinish)}</td><td>${escapeHtml(r.km)}</td><td>${escapeHtml(r.rate)}</td><td>${parseNum(r.amount)}</td></tr>`).join('')}<tr class="total"><td colspan="8">TOTAL</td><td>${t.main.toFixed(2)}</td></tr></table>
+    <br><table><tr><th>Date</th><th>ITEM</th><th>QUANTITY</th><th>RATE</th><th>AMOUNT</th></tr>${misc.map((r,i)=>`<tr class="${i%2?'light':''}"><td>${dateDisplay(r.date)}</td><td>${escapeHtml(r.item)}</td><td>${escapeHtml(r.quantity)}</td><td>${escapeHtml(r.rate)}</td><td>${parseNum(r.amount)}</td></tr>`).join('')}<tr class="total"><td colspan="4">TOTAL</td><td>${t.misc.toFixed(2)}</td></tr></table><br><table><tr><td>NOTES</td></tr><tr><td>${escapeHtml(inv.notes||'')}</td></tr></table></body></html>`;
+    downloadBlob(new Blob([html],{type:'application/vnd.ms-excel'}), filename(inv,'xls'));
+  }
+
+  function pdfEscape(s){ return String(s||'').replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)').replace(/[\r\n]+/g,' '); }
+  function pdfText(x,y,text,size=10,bold=false,align='left'){
+    text=String(text||'');
+    const approx=text.length*size*.48;
+    let xx=x; if(align==='center') xx=x-approx/2; if(align==='right') xx=x-approx;
+    return `BT /${bold?'F2':'F1'} ${size} Tf ${xx.toFixed(2)} ${(841.89-y).toFixed(2)} Td (${pdfEscape(text)}) Tj ET\n`;
+  }
+  function rect(x,y,w,h,fill,stroke=true){
+    let s=''; if(fill) s+=`${fill.join(' ')} rg ${x} ${(841.89-y-h).toFixed(2)} ${w} ${h} re f\n`; if(stroke) s+=`0.282 0.706 0.847 RG 0.7 w ${x} ${(841.89-y-h).toFixed(2)} ${w} ${h} re S\n`; return s;
+  }
+  function line(x1,y1,x2,y2){return `0.282 0.706 0.847 RG 0.7 w ${x1} ${(841.89-y1).toFixed(2)} m ${x2} ${(841.89-y2).toFixed(2)} l S\n`;}
+  const dark=[0.090,0.435,0.545], light=[0.773,0.910,0.957], white=[1,1,1], black=[0,0,0];
+  function addWrappedText(parts,x,y,text,size,bold,maxWidth,lineGap=11){
+    const words=String(text||'').split(/\s+/); let lineTxt=''; const maxChars=Math.max(8,Math.floor(maxWidth/(size*.48))); let yy=y;
+    words.forEach(w=>{ const test=lineTxt?lineTxt+' '+w:w; if(test.length>maxChars){ parts.push(pdfText(x,yy,lineTxt,size,bold)); yy+=lineGap; lineTxt=w; } else lineTxt=test; });
+    if(lineTxt) parts.push(pdfText(x,yy,lineTxt,size,bold));
+  }
+  function buildPdf(inv=current){
+    calculateAll(); const t=invoiceTotals(inv); const parts=[];
+    parts.push('0 0 0 rg\n'); parts.push(pdfText(297.64,26,'INVOICE',18,true,'center')); parts.push(line(258,30,337,30));
+    // top tables
+    const lx=40, rx=315, topY=50, lw=240, rw=240, rh=20;
+    const leftRows=[['Name/SG No:',inv.nameSg],['Mobile no.',inv.mobile],['Email id:',inv.email],['BSB',inv.bsb],['Account No',inv.accountNo],['ABN/ACN No',inv.abnAcn]];
+    const rightRows=[['Bill To:',inv.billTo],['Invoice No.:',inv.invoiceNo],['Date From:',dateDisplay(inv.dateFrom)],['Date to:',dateDisplay(inv.dateTo)],['Yello Pages Submitted (Till date)',dateLong(inv.yellowDate)]];
+    function drawInfo(x,y,w,rows){
+      const labelW=100, rowH=20;
+      rows.forEach((r,i)=>{ parts.push(rect(x,y+i*rowH,w,rowH,i%2===1?light:white)); parts.push(line(x+labelW,y+i*rowH,x+labelW,y+(i+1)*rowH)); parts.push('0.094 0.286 0.361 rg\n'); parts.push(pdfText(x+5,y+i*rowH+13,r[0],10,true)); parts.push(pdfText(x+labelW+6,y+i*rowH+13,r[1],10,false)); });
+    }
+    drawInfo(lx,topY,lw,leftRows); drawInfo(rx,topY,rw,rightRows);
+    // main table
+    const x=30,y=190,w=535, headerH=42,rowH=27, totalH=27;
+    const cols=[62,50,50,62,62,62,58,55,74]; const headers=['Load Date','From','To','BD/RT/\nBT/AB','','','Quant./KM','Rate','Amount'];
+    parts.push(rect(x,y,w,headerH,dark,false));
+    let cx=x; cols.forEach(c=>{parts.push(line(cx,y,cx,y+headerH)); cx+=c;}); parts.push(line(x+w,y,x+w,y+headerH));
+    parts.push(line(x,y,x+w,y)); parts.push(line(x,y+headerH,x+w,y+headerH));
+    cx=x; headers.forEach((h,i)=>{ if(i===4){ parts.push(pdfText(cx+(cols[4]+cols[5])/2,y+16,'Odometer',10,true,'center')); parts.push(pdfText(cx+(cols[4]+cols[5])/2,y+29,'Reading',10,true,'center')); } else if(h){ const hs=h.split('\n'); parts.push(pdfText(cx+cols[i]/2,y+18,hs[0],9.5,true,'center')); if(hs[1]) parts.push(pdfText(cx+cols[i]/2,y+31,hs[1],9.5,true,'center')); } cx+=cols[i]; });
+    const loads=padRows(inv.loads,9,newLoadRow()).slice(0,9);
+    loads.forEach((r,ri)=>{ const yy=y+headerH+ri*rowH; parts.push(rect(x,yy,w,rowH,ri%2===0?light:white)); let cc=x; const vals=[dateDisplay(r.loadDate),r.from,r.to,r.type,r.odoStart,r.odoFinish,r.km,formatRatePlain(r.rate),r.amount?money(parseNum(r.amount)):'']; vals.forEach((v,ci)=>{ parts.push(pdfText(cc+cols[ci]/2,yy+17,v,8.5,false,'center')); cc+=cols[ci]; }); });
+    const ty=y+headerH+loads.length*rowH; parts.push(rect(x,ty,w,totalH,light)); parts.push(pdfText(x+w/2-20,ty+18,'TOTAL',12,true,'center')); parts.push(pdfText(x+w-8,ty+18,money(t.main),10,true,'right'));
+    // misc table
+    const my=555; parts.push(rect(x,my,w,25,dark,false)); parts.push(pdfText(x+w/2,my+17,'MISCELLANEOUS',11,true,'center'));
+    const mCols=[105,193,74,60,103]; const mhY=my+25, mh=24; parts.push(rect(x,mhY,w,mh,light)); let mc=x; ['Date','ITEM','QUANTITY','RATE','AMOUNT'].forEach((h,i)=>{parts.push(pdfText(mc+5,mhY+16,h,9.5,false)); mc+=mCols[i];});
+    const misc=padRows(inv.misc,4,newMiscRow()).slice(0,4);
+    misc.forEach((r,ri)=>{ const yy=mhY+mh+ri*rowH; parts.push(rect(x,yy,w,rowH,ri%2===1?light:white)); let cc=x; const vals=[dateDisplay(r.date),r.item,r.quantity,formatRatePlain(r.rate),r.amount?money(parseNum(r.amount)):'']; vals.forEach((v,ci)=>{ parts.push(pdfText(cc+5,yy+17,v,8.8,false)); cc+=mCols[ci]; }); });
+    const mty=mhY+mh+misc.length*rowH; parts.push(rect(x,mty,w,totalH,light)); parts.push(pdfText(x+w/2-20,mty+18,'TOTAL',12,true,'center')); parts.push(pdfText(x+w-8,mty+18,money(t.misc),10,true,'right'));
+    // Notes
+    const ny=750,nw=535,nrh=18; for(let i=0;i<4;i++) parts.push(rect(x,ny+i*nrh,nw,nrh,white,true)); parts.push('0 0 0 rg\n'); parts.push(pdfText(x+5,ny+13,'NOTES',10,false));
+    const noteLines=String(inv.notes||'').split(/\n/).slice(0,3); noteLines.forEach((n,i)=>addWrappedText(parts,x+5,ny+(i+1)*nrh+13,n,8.5,false,nw-10,9));
+    return makePdf(parts.join(''));
+  }
+  function formatRatePlain(v){
+    if(!v) return ''; const s=String(v); return isNumericRate(s)&&!/[a-zA-Z]/.test(s) ? '$'+parseNum(s).toFixed(2).replace(/\.00$/,'') : s;
+  }
+  function makePdf(content){
+    const objects=[];
+    objects.push('<< /Type /Catalog /Pages 2 0 R >>');
+    objects.push('<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
+    objects.push('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>');
+    objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+    objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');
+    objects.push(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`);
+    let pdf='%PDF-1.4\n'; const offsets=[0];
+    objects.forEach((obj,i)=>{ offsets.push(pdf.length); pdf += `${i+1} 0 obj\n${obj}\nendobj\n`; });
+    const xref=pdf.length; pdf += `xref\n0 ${objects.length+1}\n0000000000 65535 f \n`;
+    for(let i=1;i<offsets.length;i++) pdf += String(offsets[i]).padStart(10,'0') + ' 00000 n \n';
+    pdf += `trailer\n<< /Size ${objects.length+1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+    return new Blob([pdf],{type:'application/pdf'});
+  }
+  function exportPdf(inv=current){ downloadBlob(buildPdf(inv), filename(inv,'pdf')); }
+  function emailInvoice(inv=current){
+    const subject=encodeURIComponent(`Invoice-${inv.invoiceNo} (${dateLong(inv.dateFrom)} to ${dateLong(inv.dateTo)})`);
+    const body=encodeURIComponent(`Hi,\n\nPlease find invoice ${inv.invoiceNo} for ${dateLong(inv.dateFrom)} to ${dateLong(inv.dateTo)}.\n\nTotal: ${money(invoiceTotals(inv).grand)}\n\nNote: please attach the exported PDF or Excel file from the app.\n\nThanks`);
+    location.href=`mailto:?subject=${subject}&body=${body}`;
+  }
+
+  function bindEvents(){
+    for(const id of ['nameSg','billTo','mobile','invoiceNo','email','bsb','accountNo','abnAcn','dateFrom','dateTo','yellowDate','notes']) $(id).addEventListener('input',()=>{collectForm(); updateTotals();});
+    $('addLoadRowBtn').addEventListener('click',()=>{current.loads.push(newLoadRow()); renderLoadRows(); updateTotals();});
+    $('addMiscRowBtn').addEventListener('click',()=>{current.misc.push(newMiscRow()); renderMiscRows(); updateTotals();});
+    $('saveInvoiceBtn').addEventListener('click',()=>saveCurrentInvoice());
+    $('saveInvoiceBtnTop').addEventListener('click',()=>saveCurrentInvoice());
+    $('newInvoiceBtn').addEventListener('click',startNewInvoice); $('newInvoiceBtn2').addEventListener('click',startNewInvoice);
+    $('saveDefaultsBtn').addEventListener('click',saveDefaults);
+    $('previewBtn').addEventListener('click',()=>showScreen('preview'));
+    $('exportPdfBtn').addEventListener('click',()=>{saveCurrentInvoice(true); exportPdf(); showToast('PDF exported');});
+    $('downloadPdfBtn').addEventListener('click',()=>{saveCurrentInvoice(true); exportPdf();});
+    $('exportExcelBtn').addEventListener('click',()=>{saveCurrentInvoice(true); exportExcel(); showToast('Excel exported');});
+    $('previewExcelBtn').addEventListener('click',()=>{saveCurrentInvoice(true); exportExcel();});
+    $('printBtn').addEventListener('click',()=>{renderPreview(); window.print();});
+    $('emailBtn').addEventListener('click',()=>emailInvoice());
+    $('viewListBtn').addEventListener('click',()=>{listMode='list'; renderInvoiceCards();});
+    $('viewGridBtn').addEventListener('click',()=>{listMode='grid'; renderInvoiceCards();});
+    $('saveSettingsBtn').addEventListener('click',saveSettings);
+    document.querySelectorAll('[data-add-list]').forEach(btn=>btn.addEventListener('click',()=>{
+      const map={types:'newType',cities:'newCity',rates:'newRate',miscItems:'newMiscItem'}; addListItem(btn.dataset.addList,map[btn.dataset.addList]);
+    }));
+    $('modalCloseBtn').addEventListener('click',closeModal);
+    $('invoiceActionModal').addEventListener('click',e=>{if(e.target.id==='invoiceActionModal') closeModal();});
+    $('modalPreviewBtn').addEventListener('click',()=>{const inv=selectedInv(); if(inv){current=deepClone(inv); fillForm(); showScreen('preview'); closeModal();}});
+    $('modalEditBtn').addEventListener('click',()=>{const inv=selectedInv(); if(inv){loadInvoice(inv); closeModal();}});
+    $('modalPdfBtn').addEventListener('click',()=>{const inv=selectedInv(); if(inv){exportPdf(inv); closeModal();}});
+    $('modalExcelBtn').addEventListener('click',()=>{const inv=selectedInv(); if(inv){exportExcel(inv); closeModal();}});
+    $('modalEmailBtn').addEventListener('click',()=>{const inv=selectedInv(); if(inv){emailInvoice(inv); closeModal();}});
+    $('modalDeleteBtn').addEventListener('click',()=>{const inv=selectedInv(); if(inv && confirm('Delete this invoice?')){state.invoices=state.invoices.filter(x=>x.id!==inv.id); saveState(); renderInvoiceCards(); closeModal(); showToast('Invoice deleted');}});
+  }
+
+  function init(){
+    bindTabs(); bindEvents(); refreshDatalists(); fillForm(); renderInvoiceCards(); renderSettings();
+    if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+  }
+  init();
+})();
+</script>
+</body>
+</html>

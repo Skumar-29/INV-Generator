@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="108" fill="#176f8b"/>
+  <rect x="96" y="72" width="320" height="368" rx="22" fill="#fff"/>
+  <rect x="126" y="132" width="260" height="32" fill="#c5e8f4"/>
+  <rect x="126" y="194" width="260" height="28" fill="#176f8b"/>
+  <rect x="126" y="246" width="260" height="22" fill="#c5e8f4"/>
+  <rect x="126" y="296" width="260" height="22" fill="#c5e8f4"/>
+  <text x="256" y="116" text-anchor="middle" font-family="Arial" font-size="38" font-weight="700" fill="#111">INVOICE</text>
+  <text x="256" y="384" text-anchor="middle" font-family="Arial" font-size="66" font-weight="900" fill="#176f8b">$</text>
+</svg>
