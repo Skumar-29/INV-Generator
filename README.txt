@@ -18,3 +18,5 @@ After uploading to GitHub:
 3. Commit changes.
 4. Wait 1-5 minutes for GitHub Pages to update.
 5. On iPhone Safari, refresh the app. If the old app still shows, close Safari and reopen, or clear website data for the GitHub Pages site.
+
+Update v4: mobile Top Details order adjusted so Date to appears immediately below Date From, and BSB moved lower.

@@ -114,6 +114,10 @@
       .split{grid-template-columns:1fr}
       .two,.three,.four{grid-template-columns:1fr}
       .top-tables{gap:20px}
+      /* Mobile field order: keep Date to directly after Date From, then move BSB down. */
+      .field-name{order:1}.field-bill{order:2}.field-mobile{order:3}.field-invoice{order:4}
+      .field-email{order:5}.field-date-from{order:6}.field-date-to{order:7}.field-bsb{order:8}
+      .field-account{order:9}.field-yellow{order:10}.field-abn{order:11}
     }
     @media print{
       body{background:white}
@@ -150,17 +154,17 @@
           <div class="panel">
             <h2>Top Details</h2>
             <div class="grid two">
-              <div><label>Name/SG No</label><input id="nameSg" autocomplete="name" /></div>
-              <div><label>Bill To</label><input id="billTo" /></div>
-              <div><label>Mobile no.</label><input id="mobile" inputmode="numeric" pattern="[0-9 ]*" /></div>
-              <div><label>Invoice No.</label><input id="invoiceNo" inputmode="numeric" pattern="[0-9]*" /></div>
-              <div><label>Email id</label><input id="email" type="email" /></div>
-              <div><label>Date From</label><input id="dateFrom" type="date" /></div>
-              <div><label>BSB</label><input id="bsb" inputmode="numeric" pattern="[0-9 ]*" /></div>
-              <div><label>Date to</label><input id="dateTo" type="date" /></div>
-              <div><label>Account No</label><input id="accountNo" inputmode="numeric" pattern="[0-9 ]*" /></div>
-              <div><label>Yellow Pages Submitted (Till date)</label><input id="yellowDate" type="date" /></div>
-              <div><label>ABN/ACN No</label><input id="abnAcn" inputmode="numeric" pattern="[0-9 ]*" /></div>
+              <div class="field-name"><label>Name/SG No</label><input id="nameSg" autocomplete="name" /></div>
+              <div class="field-bill"><label>Bill To</label><input id="billTo" /></div>
+              <div class="field-mobile"><label>Mobile no.</label><input id="mobile" inputmode="numeric" pattern="[0-9 ]*" /></div>
+              <div class="field-invoice"><label>Invoice No.</label><input id="invoiceNo" inputmode="numeric" pattern="[0-9]*" /></div>
+              <div class="field-email"><label>Email id</label><input id="email" type="email" /></div>
+              <div class="field-date-from"><label>Date From</label><input id="dateFrom" type="date" /></div>
+              <div class="field-bsb"><label>BSB</label><input id="bsb" inputmode="numeric" pattern="[0-9 ]*" /></div>
+              <div class="field-date-to"><label>Date to</label><input id="dateTo" type="date" /></div>
+              <div class="field-account"><label>Account No</label><input id="accountNo" inputmode="numeric" pattern="[0-9 ]*" /></div>
+              <div class="field-yellow"><label>Yellow Pages Submitted (Till date)</label><input id="yellowDate" type="date" /></div>
+              <div class="field-abn"><label>ABN/ACN No</label><input id="abnAcn" inputmode="numeric" pattern="[0-9 ]*" /></div>
             </div>
             <div class="row-actions">
               <button class="secondary" id="saveDefaultsBtn">Save top details as default</button>
