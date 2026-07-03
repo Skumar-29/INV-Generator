@@ -32,11 +32,14 @@
     button.small{padding:7px 10px;font-size:13px;border-radius:9px}
     button:disabled{opacity:.55;cursor:not-allowed}
     .appbar{position:sticky;top:0;z-index:20;background:rgba(238,247,251,.96);backdrop-filter:blur(14px);border-bottom:1px solid rgba(72,180,216,.35);padding:10px 12px 8px}
-    .appbar-top{display:flex;align-items:center;gap:10px;justify-content:space-between;max-width:1180px;margin:0 auto}
-    .brand{font-size:18px;font-weight:900;letter-spacing:.2px;color:var(--dark)}
-    .tabs{display:flex;gap:8px;overflow-x:auto;padding:8px 0 0;max-width:1180px;margin:0 auto}
-    .tab{white-space:nowrap;background:#fff;color:var(--dark);border:1px solid rgba(23,111,139,.3);box-shadow:none;padding:9px 12px}
+    .appbar-top{display:flex;align-items:center;gap:10px;justify-content:center;max-width:1180px;margin:0 auto}
+    .brand{font-size:18px;font-weight:900;letter-spacing:.2px;color:var(--dark);text-align:center}
+    .tabs{display:flex;gap:8px;overflow-x:auto;padding:8px 0 0;max-width:1180px;margin:0 auto;justify-content:center}
+    .tab{white-space:nowrap;background:#fff;color:var(--dark);border:1px solid rgba(23,111,139,.3);box-shadow:none;padding:9px 16px;border-radius:999px;min-width:108px}
     .tab.active{background:var(--dark);color:#fff}
+    .quick-actions{display:flex;gap:10px;justify-content:center;align-items:center;max-width:1180px;margin:0 auto;padding:9px 0 2px}
+    .quick-actions button{min-width:120px;border-radius:999px}
+    .quick-actions .primary-save{box-shadow:0 4px 14px rgba(23,111,139,.28)}
     .wrap{max-width:1180px;margin:0 auto;padding:14px 12px 32px}
     .screen{display:none}
     .screen.active{display:block}
@@ -130,6 +133,10 @@
       .field-name{order:1}.field-bill{order:2}.field-mobile{order:3}.field-invoice{order:4}
       .field-email{order:5}.field-date-from{order:6}.field-date-to{order:7}.field-bsb{order:8}
       .field-account{order:9}.field-yellow{order:10}.field-abn{order:11}
+      .tabs{justify-content:center}
+      .tab{flex:1;min-width:0;padding:9px 8px}
+      .quick-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;padding-top:8px}
+      .quick-actions button{min-width:0;padding:10px 6px;font-size:14px}
     }
     @media print{
       body{background:white}
@@ -152,17 +159,15 @@
       <button class="tab" data-screen="all">All Invoices</button>
       <button class="tab" data-screen="settings">Settings</button>
     </div>
+    <div class="quick-actions no-print" id="invoiceQuickActions">
+      <button class="secondary" id="newInvoiceBtn">New Invoice</button>
+      <button class="secondary" id="previewBtnTop">Preview</button>
+      <button class="primary-save" id="saveInvoiceBtnTop">Save</button>
+    </div>
   </div>
 
   <div class="wrap">
     <section class="screen active" id="screenEdit">
-      <div class="panel no-print invoice-actions-panel">
-        <div class="row-actions" style="justify-content:flex-end;margin-top:0">
-          <button class="secondary" id="newInvoiceBtn">New Invoice</button>
-          <button class="secondary" id="previewBtnTop">Preview</button>
-          <button id="saveInvoiceBtnTop">Save</button>
-        </div>
-      </div>
       <div class="split">
         <div>
           <div class="panel">
@@ -207,7 +212,7 @@
                 <tbody></tbody>
               </table>
             </div>
-            <div class="row-actions"><button class="secondary" id="addLoadRowBtn">Add load row</button><span class="hint">Amount auto-calculates when start odometer, finish odometer, and numeric rate are entered. You can still manually edit amount.</span></div>
+            <div class="row-actions"><button class="secondary" id="addLoadRowBtn">Add load row</button><span class="hint">Normal rows calculate KM × rate. If BD/RT/BT/AB contains C/O, the saved rate is treated as fixed payment and copied to Amount. You can still manually edit amount.</span></div>
           </div>
 
           <div class="panel">
@@ -297,7 +302,7 @@
             <input id="newTypeRateValue" inputmode="decimal" placeholder="Rate, e.g. 0.52" />
             <button class="secondary small" id="addTypeRateBtn">Add category/rate</button>
           </div>
-          <div class="hint">Add more BD/RT/BT/AB items here. These items appear in the invoice BD/RT/BT/AB dropdown, and their rates also appear in the Rate dropdown.</div>
+          <div class="hint">Add more BD/RT/BT/AB items here. For fixed change-over payment, add items such as BD C/O, RT C/O, BT C/O, AB C/O or C/O with the fixed amount. If the invoice category contains C/O, the app puts that rate directly into Amount instead of multiplying by KM.</div>
           <div class="row-actions"><button class="secondary" id="saveTypeRatesBtn">Save BD/RT/BT/AB Rates</button></div>
         </div>
         <div class="panel">
@@ -361,7 +366,7 @@
 <script>
 (() => {
   const STORAGE_KEY = 'aps_invoice_generator_v1';
-  const APP_VERSION = 'v7-rate-dropdown-add-items';
+  const APP_VERSION = 'v8-changeover-frozen-buttons';
   const OLD_DEMO_PROFILE = {nameSg:'MANISH SIHAG', billTo:'SGGS PTY LTD', mobile:'0431793432', email:'Manishsihag0929gmail', bsb:'083338', accountNo:'766073879', abnAcn:'694611633'};
   const BLANK_PROFILE = {nameSg:'', billTo:'', mobile:'', email:'', bsb:'', accountNo:'', abnAcn:''};
   const DEFAULTS = {
@@ -436,6 +441,16 @@
     return s ? Number(s[0]) : 0;
   }
   function isNumericRate(v){ return /\d/.test(String(v||'')); }
+  function normaliseOptionKey(v){ return String(v||'').trim().toUpperCase().replace(/\s+/g,' '); }
+  function isChangeoverType(type){ return /(^|[^A-Z0-9])C\s*\/?\s*O([^A-Z0-9]|$)/i.test(String(type||'')); }
+  function lookupRate(map, key){
+    key = String(key||'').trim();
+    if(!key || !map) return '';
+    if(map[key] !== undefined) return map[key];
+    const n = normaliseOptionKey(key);
+    for(const [k,v] of Object.entries(map)){ if(normaliseOptionKey(k) === n) return v; }
+    return '';
+  }
   function newLoadRow(){ return {loadDate:'', from:'', to:'', type:'', odoStart:'', odoFinish:'', km:'', rate:'', amount:'', manualAmount:false}; }
   function newMiscRow(){ return {date:'', item:'', quantity:'', rate:'', amount:'', manualAmount:false}; }
   function newInvoice(){
@@ -475,6 +490,7 @@
     document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.screen===name));
     document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
     $('screen'+name.charAt(0).toUpperCase()+name.slice(1)).classList.add('active');
+    const quick = $('invoiceQuickActions'); if(quick) quick.style.display = name === 'edit' ? '' : 'none';
     if(name==='preview') renderPreview();
     if(name==='all') renderInvoiceCards();
     if(name==='settings') renderSettings();
@@ -493,7 +509,14 @@
   function calculateLoadRow(r){
     const start = parseNum(r.odoStart), finish = parseNum(r.odoFinish);
     if(r.odoStart !== '' && r.odoFinish !== '') r.km = Math.max(0, finish - start).toString();
-    if(!r.manualAmount && isNumericRate(r.rate)) r.amount = ((parseNum(r.km) || 0) * parseNum(r.rate)).toFixed(2);
+    if(!r.manualAmount && isNumericRate(r.rate)){
+      if(isChangeoverType(r.type)){
+        // Change-over/C/O is paid as a fixed amount, not KM × rate.
+        r.amount = parseNum(r.rate).toFixed(2);
+      }else{
+        r.amount = ((parseNum(r.km) || 0) * parseNum(r.rate)).toFixed(2);
+      }
+    }
     return r;
   }
   function calculateMiscRow(r){
@@ -560,7 +583,14 @@
   function getAutoRate(type){
     const key=String(type||'').trim();
     if(!key) return '';
-    return state.settings.typeRates[key] || state.settings.typeRates[key.toUpperCase()] || '';
+    const exact = lookupRate(state.settings.typeRates, key);
+    if(exact !== '') return exact;
+    if(isChangeoverType(key)){
+      // If a user types/selects BD C/O, RT C/O, etc. but only a general C/O rate is saved, use that.
+      const co = lookupRate(state.settings.typeRates, 'C/O') || lookupRate(state.settings.typeRates, 'CO');
+      if(co !== '') return co;
+    }
+    return '';
   }
   function getMiscAutoRate(item){
     const key=String(item||'').trim();
