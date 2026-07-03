@@ -76,16 +76,22 @@
     .invoice-card .amt{font-weight:950;font-size:18px;margin-top:8px;color:#102f3c}
     .empty{padding:28px;text-align:center;color:var(--muted);border:1px dashed rgba(23,111,139,.4);border-radius:16px;background:#fff}
     .preview-shell{overflow:auto;background:#dcecf2;border-radius:16px;padding:14px;border:1px solid rgba(72,180,216,.5)}
-    .invoice-paper{width:768px;min-height:1024px;background:white;margin:0 auto;padding:12px 13px 13px;color:#111;box-shadow:0 7px 30px rgba(0,0,0,.18);font-family:Arial,Helvetica,sans-serif}
+    .preview-pages{display:grid;gap:18px;justify-items:center}
+    .invoice-paper{width:768px;min-height:1024px;background:white;margin:0 auto;padding:12px 13px 13px;color:#111;box-shadow:0 7px 30px rgba(0,0,0,.18);font-family:Arial,Helvetica,sans-serif;page-break-after:always}
+    .invoice-paper:last-child{page-break-after:auto}
     .invoice-title{text-align:center;font-size:23px;font-weight:900;text-decoration:underline;margin:0 0 25px;color:#000}
-    .top-tables{display:grid;grid-template-columns:1fr 1.08fr;gap:92px;margin:0 7px 29px}
+    .top-tables{display:grid;grid-template-columns:306px 334px;gap:92px;margin:0 7px 29px;align-items:start}
     .info-table{border-collapse:collapse;width:100%;font-size:14px;font-weight:700;color:#27536a}
-    .info-table td{border:1px solid var(--line);height:27px;padding:4px 6px;vertical-align:middle}
+    .info-table td{border:1px solid var(--line);height:27px;padding:4px 6px;vertical-align:middle;overflow:hidden}
     .info-table tr:nth-child(even) td{background:var(--light)}
-    .info-table td:first-child{width:126px}
+    .top-tables .info-table:first-child td:first-child{width:126px}
+    .top-tables .info-table:last-child td:first-child{width:166px}
+    .info-table td:last-child{font-weight:500;color:#214a5d}
+    .info-table .yellow-row td{height:54px}
+    .info-table .yellow-label{line-height:1.08;font-size:13px;white-space:normal}
     .main-invoice-table,.misc-table{border-collapse:collapse;width:100%;font-size:14px;table-layout:fixed}
     .main-invoice-table th,.main-invoice-table td,.misc-table th,.misc-table td{border:1px solid var(--line);height:34px;padding:4px 6px;vertical-align:middle;overflow:hidden;word-break:break-word}
-    .main-invoice-table th{height:58px;background:var(--dark);color:#fff;font-weight:900;text-align:center;border-color:var(--dark)}
+    .main-invoice-table th{height:58px;background:var(--dark);color:#fff!important;font-weight:900;text-align:center;border-color:var(--dark);font-size:15px;line-height:1.15}
     .main-invoice-table td{text-align:center}
     .main-invoice-table tr.data:nth-child(even) td,.misc-table tr.data:nth-child(odd) td{background:var(--light)}
     .main-invoice-table .total-label,.misc-table .total-label{background:var(--light);font-weight:900;text-align:center;font-size:16px;color:#111}
@@ -113,7 +119,7 @@
       #screenPreview{display:block!important}
       .wrap{padding:0;margin:0;max-width:none}
       .preview-shell{padding:0;background:white;border:0;border-radius:0;overflow:visible}
-      .invoice-paper{box-shadow:none;margin:0;width:100%;min-height:auto;padding:12px 13px}
+      .preview-pages{display:block}.invoice-paper{box-shadow:none;margin:0 auto;width:100%;min-height:auto;padding:12px 13px}
       @page{size:A4 portrait;margin:8mm}
     }
   </style>
@@ -237,9 +243,9 @@
       <div class="panel print-panel">
         <div class="row-actions no-print" style="justify-content:space-between;margin-top:0;margin-bottom:12px">
           <h2 style="margin:0">Invoice Preview</h2>
-          <div class="row-actions" style="margin:0"><button class="secondary" id="printBtn">Print / Save PDF</button><button id="downloadPdfBtn">Download PDF</button><button class="secondary" id="previewExcelBtn">Export Excel</button><button class="secondary" id="emailBtn">Send by email</button></div>
+          <div class="row-actions" style="margin:0"><button class="secondary" id="previewBackBtn">← Back to Invoice</button><button id="printBtn">Save PDF</button><button class="secondary" id="downloadPdfBtn">Download PDF</button><button class="secondary" id="previewExcelBtn">Export Excel</button><button class="secondary" id="emailBtn">Email PDF</button></div>
         </div>
-        <div class="preview-shell"><div id="invoicePreview" class="invoice-paper"></div></div>
+        <div class="preview-shell"><div id="invoicePreview" class="preview-pages"></div></div>
       </div>
     </section>
 
@@ -275,7 +281,7 @@
         <button class="secondary" id="modalEditBtn">Edit</button>
         <button class="secondary" id="modalPdfBtn">Export PDF</button>
         <button class="secondary" id="modalExcelBtn">Export Excel</button>
-        <button class="secondary" id="modalEmailBtn">Email</button>
+        <button class="secondary" id="modalEmailBtn">Email PDF</button>
         <button class="danger" id="modalDeleteBtn">Delete</button>
         <button class="ghost" id="modalCloseBtn">Close</button>
       </div>
@@ -493,29 +499,42 @@
   }
   function renderPreview(inv=current){
     calculateAll();
+    const loadRows = nonEmptyRows(inv.loads);
+    const pages = [];
+    if(loadRows.length <= 10){
+      pages.push({loads:padGivenRows(loadRows,10,newLoadRow()), showTotals:true, showMisc:true, pageNo:1, pageCount:1});
+    }else{
+      const chunks = chunkRows(loadRows,10);
+      chunks.forEach((chunk,idx)=>pages.push({loads:padGivenRows(chunk,10,newLoadRow()), showTotals:idx===chunks.length-1, showMisc:idx===chunks.length-1, pageNo:idx+1, pageCount:chunks.length}));
+    }
+    $('invoicePreview').innerHTML = pages.map(p=>renderInvoicePage(inv,p)).join('');
+  }
+  function renderInvoicePage(inv,page){
     const t=invoiceTotals(inv);
-    const loads = padRows(inv.loads,9,newLoadRow());
     const misc = padRows(inv.misc,4,newMiscRow());
     const notes = String(inv.notes||'').split(/\n/).slice(0,3);
     while(notes.length<3) notes.push('');
-    $('invoicePreview').innerHTML = `
+    const continued = page.pageCount > 1 && page.pageNo < page.pageCount;
+    return `
+      <div class="invoice-paper">
       <div class="invoice-title">INVOICE</div>
       <div class="top-tables">
         <table class="info-table"><tbody>
           ${infoRow('Name/SG No:',inv.nameSg)}${infoRow('Mobile no.',inv.mobile)}${infoRow('Email id:',inv.email)}${infoRow('BSB',inv.bsb)}${infoRow('Account No',inv.accountNo)}${infoRow('ABN/ACN No',inv.abnAcn)}
         </tbody></table>
         <table class="info-table"><tbody>
-          ${infoRow('Bill To:',inv.billTo)}${infoRow('Invoice No.:',inv.invoiceNo)}${infoRow('Date From:',dateDisplay(inv.dateFrom))}${infoRow('Date to:',dateDisplay(inv.dateTo))}${infoRow('Yello Pages<br>Submitted (Till date)',dateLong(inv.yellowDate))}
+          ${infoRow('Bill To:',inv.billTo)}${infoRow('Invoice No.:',inv.invoiceNo)}${infoRow('Date From:',dateDisplay(inv.dateFrom))}${infoRow('Date to:',dateDisplay(inv.dateTo))}${infoRow('<span class="yellow-label">Yello Pages<br>Submitted (Till date)</span>',dateLong(inv.yellowDate),'yellow-row')}
         </tbody></table>
       </div>
       <table class="main-invoice-table">
-        <colgroup><col style="width:12%"><col style="width:9.5%"><col style="width:9.5%"><col style="width:11%"><col style="width:11%"><col style="width:11%"><col style="width:12%"><col style="width:11%"><col style="width:13%"></colgroup>
+        <colgroup><col style="width:12.5%"><col style="width:9.7%"><col style="width:9.2%"><col style="width:11.2%"><col style="width:9.45%"><col style="width:9.45%"><col style="width:12.4%"><col style="width:11.2%"><col style="width:14.9%"></colgroup>
         <thead><tr><th>Load Date</th><th>From</th><th>To</th><th>BD/RT/<br>BT/AB</th><th colspan="2">Odometer<br>Reading</th><th>Quant./KM</th><th>Rate</th><th>Amount</th></tr></thead>
         <tbody>
-          ${loads.map(r=>`<tr class="data"><td>${escapeHtml(dateDisplay(r.loadDate))}</td><td>${escapeHtml(r.from)}</td><td>${escapeHtml(r.to)}</td><td>${escapeHtml(r.type)}</td><td>${escapeHtml(r.odoStart)}</td><td>${escapeHtml(r.odoFinish)}</td><td>${escapeHtml(r.km)}</td><td>${formatRate(r.rate)}</td><td>${r.amount?money(parseNum(r.amount)):''}</td></tr>`).join('')}
-          <tr><td class="total-label" colspan="8">TOTAL</td><td class="total-label">${money(t.main)}</td></tr>
+          ${page.loads.map(r=>`<tr class="data"><td>${escapeHtml(dateDisplay(r.loadDate))}</td><td>${escapeHtml(r.from)}</td><td>${escapeHtml(r.to)}</td><td>${escapeHtml(r.type)}</td><td>${escapeHtml(r.odoStart)}</td><td>${escapeHtml(r.odoFinish)}</td><td>${escapeHtml(r.km)}</td><td>${formatRate(r.rate)}</td><td>${r.amount?money(parseNum(r.amount)):''}</td></tr>`).join('')}
+          <tr><td class="total-label" colspan="8">${continued?'CONTINUED ON NEXT PAGE':'TOTAL'}</td><td class="total-label">${continued?'':money(t.main)}</td></tr>
         </tbody>
       </table>
+      ${page.showMisc ? `
       <div class="misc-title">MISCELLANEOUS</div>
       <table class="misc-table">
         <colgroup><col style="width:20%"><col style="width:36%"><col style="width:14%"><col style="width:11%"><col style="width:19%"></colgroup>
@@ -525,15 +544,19 @@
           <tr><td class="total-label" colspan="4">TOTAL</td><td class="total-label">${money(t.misc)}</td></tr>
         </tbody>
       </table>
-      <table class="notes-box"><tbody><tr><td>NOTES</td></tr>${notes.map(n=>`<tr><td>${escapeHtml(n)}</td></tr>`).join('')}</tbody></table>
+      <table class="notes-box"><tbody><tr><td>NOTES</td></tr>${notes.map(n=>`<tr><td>${escapeHtml(n)}</td></tr>`).join('')}</tbody></table>` : `<div class="hint" style="text-align:center;margin-top:26px">Page ${page.pageNo} of ${page.pageCount}</div>`}
+      </div>
     `;
   }
+  function nonEmptyRows(arr){ return deepClone(arr||[]).filter(r=>Object.entries(r).some(([k,v])=>k!=='manualAmount' && v!=='' && v!==false && v!==null && v!==undefined)); }
+  function padGivenRows(arr,len,blank){ const out=deepClone(arr||[]); while(out.length<len) out.push(deepClone(blank)); return out; }
+  function chunkRows(arr,size){ const out=[]; for(let i=0;i<arr.length;i+=size) out.push(arr.slice(i,i+size)); return out; }
   function padRows(arr,len,blank){
-    const out = deepClone(arr||[]).filter(r=>Object.values(r).some(v=>v!=='' && v!==false));
+    const out = nonEmptyRows(arr);
     while(out.length<len) out.push(deepClone(blank));
     return out.slice(0,Math.max(len,out.length));
   }
-  function infoRow(label,value){ return `<tr><td>${label}</td><td>${escapeHtml(value)}</td></tr>`; }
+  function infoRow(label,value,cls=''){ return `<tr class="${cls}"><td>${label}</td><td>${escapeHtml(value)}</td></tr>`; }
   function formatRate(v){
     if(!v) return '';
     const s=String(v);
@@ -625,49 +648,85 @@
     if(lineTxt) parts.push(pdfText(x,yy,lineTxt,size,bold));
   }
   function buildPdf(inv=current){
-    calculateAll(); const t=invoiceTotals(inv); const parts=[];
-    parts.push('0 0 0 rg\n'); parts.push(pdfText(297.64,26,'INVOICE',18,true,'center')); parts.push(line(258,30,337,30));
-    // top tables
-    const lx=40, rx=315, topY=50, lw=240, rw=240, rh=20;
-    const leftRows=[['Name/SG No:',inv.nameSg],['Mobile no.',inv.mobile],['Email id:',inv.email],['BSB',inv.bsb],['Account No',inv.accountNo],['ABN/ACN No',inv.abnAcn]];
-    const rightRows=[['Bill To:',inv.billTo],['Invoice No.:',inv.invoiceNo],['Date From:',dateDisplay(inv.dateFrom)],['Date to:',dateDisplay(inv.dateTo)],['Yello Pages Submitted (Till date)',dateLong(inv.yellowDate)]];
-    function drawInfo(x,y,w,rows){
-      const labelW=100, rowH=20;
-      rows.forEach((r,i)=>{ parts.push(rect(x,y+i*rowH,w,rowH,i%2===1?light:white)); parts.push(line(x+labelW,y+i*rowH,x+labelW,y+(i+1)*rowH)); parts.push('0.094 0.286 0.361 rg\n'); parts.push(pdfText(x+5,y+i*rowH+13,r[0],10,true)); parts.push(pdfText(x+labelW+6,y+i*rowH+13,r[1],10,false)); });
+    calculateAll();
+    const loadRows = nonEmptyRows(inv.loads);
+    let pages;
+    if(loadRows.length <= 10){
+      pages = [{loads:padGivenRows(loadRows,10,newLoadRow()), showTotals:true, showMisc:true, pageNo:1, pageCount:1}];
+    }else{
+      const chunks = chunkRows(loadRows,10);
+      pages = chunks.map((chunk,idx)=>({loads:padGivenRows(chunk,10,newLoadRow()), showTotals:idx===chunks.length-1, showMisc:idx===chunks.length-1, pageNo:idx+1, pageCount:chunks.length}));
     }
-    drawInfo(lx,topY,lw,leftRows); drawInfo(rx,topY,rw,rightRows);
-    // main table
-    const x=30,y=190,w=535, headerH=42,rowH=27, totalH=27;
-    const cols=[62,50,50,62,62,62,58,55,74]; const headers=['Load Date','From','To','BD/RT/\nBT/AB','','','Quant./KM','Rate','Amount'];
+    return makePdfPages(pages.map(page=>buildPdfPage(inv,page)));
+  }
+  function buildPdfPage(inv,page){
+    const t=invoiceTotals(inv); const parts=[];
+    const setBlack='0 0 0 rg\n', setWhite='1 1 1 rg\n', setTeal='0.094 0.286 0.361 rg\n';
+    parts.push(setBlack); parts.push(pdfText(297.64,26,'INVOICE',18,true,'center')); parts.push(line(258,30,337,30));
+    // top details - matched to the attached invoice proportions
+    const lx=15, rx=323, topY=50, lw=238, rw=257, normalH=20, tallH=40;
+    const leftRows=[['Name/SG No:',inv.nameSg,normalH],['Mobile no.',inv.mobile,normalH],['Email id:',inv.email,normalH],['BSB',inv.bsb,normalH],['Account No',inv.accountNo,normalH],['ABN/ACN No',inv.abnAcn,normalH]];
+    const rightRows=[['Bill To:',inv.billTo,normalH],['Invoice No.:',inv.invoiceNo,normalH],['Date From:',dateDisplay(inv.dateFrom),normalH],['Date to:',dateDisplay(inv.dateTo),normalH],['Yello Pages\nSubmitted (Till date)',dateLong(inv.yellowDate),tallH]];
+    function drawInfo(x,y,w,labelW,rows){
+      let yy=y;
+      rows.forEach((r,i)=>{
+        const h=r[2]||normalH; parts.push(rect(x,yy,w,h,i%2===1?light:white)); parts.push(line(x+labelW,yy,x+labelW,yy+h));
+        parts.push(setTeal);
+        if(String(r[0]).includes('\n')){ const a=String(r[0]).split('\n'); parts.push(pdfText(x+5,yy+14,a[0],9.5,true)); parts.push(pdfText(x+5,yy+27,a[1],9.5,true)); }
+        else parts.push(pdfText(x+5,yy+13,r[0],10,true));
+        parts.push(setBlack); parts.push(pdfText(x+labelW+6,yy+(h>normalH?24:13),r[1],10,false));
+        yy+=h;
+      });
+    }
+    drawInfo(lx,topY,lw,100,leftRows); drawInfo(rx,topY,rw,155,rightRows);
+    // main load table
+    const x=10,y=205,w=575, headerH=47,rowH=27,totalH=26;
+    const cols=[72,56,53,64,54,54,71,64,87];
     parts.push(rect(x,y,w,headerH,dark,false));
-    let cx=x; cols.forEach(c=>{parts.push(line(cx,y,cx,y+headerH)); cx+=c;}); parts.push(line(x+w,y,x+w,y+headerH));
-    parts.push(line(x,y,x+w,y)); parts.push(line(x,y+headerH,x+w,y+headerH));
-    cx=x; headers.forEach((h,i)=>{ if(i===4){ parts.push(pdfText(cx+(cols[4]+cols[5])/2,y+16,'Odometer',10,true,'center')); parts.push(pdfText(cx+(cols[4]+cols[5])/2,y+29,'Reading',10,true,'center')); } else if(h){ const hs=h.split('\n'); parts.push(pdfText(cx+cols[i]/2,y+18,hs[0],9.5,true,'center')); if(hs[1]) parts.push(pdfText(cx+cols[i]/2,y+31,hs[1],9.5,true,'center')); } cx+=cols[i]; });
-    const loads=padRows(inv.loads,9,newLoadRow()).slice(0,9);
-    loads.forEach((r,ri)=>{ const yy=y+headerH+ri*rowH; parts.push(rect(x,yy,w,rowH,ri%2===0?light:white)); let cc=x; const vals=[dateDisplay(r.loadDate),r.from,r.to,r.type,r.odoStart,r.odoFinish,r.km,formatRatePlain(r.rate),r.amount?money(parseNum(r.amount)):'']; vals.forEach((v,ci)=>{ parts.push(pdfText(cc+cols[ci]/2,yy+17,v,8.5,false,'center')); cc+=cols[ci]; }); });
-    const ty=y+headerH+loads.length*rowH; parts.push(rect(x,ty,w,totalH,light)); parts.push(pdfText(x+w/2-20,ty+18,'TOTAL',12,true,'center')); parts.push(pdfText(x+w-8,ty+18,money(t.main),10,true,'right'));
-    // misc table
-    const my=555; parts.push(rect(x,my,w,25,dark,false)); parts.push(pdfText(x+w/2,my+17,'MISCELLANEOUS',11,true,'center'));
-    const mCols=[105,193,74,60,103]; const mhY=my+25, mh=24; parts.push(rect(x,mhY,w,mh,light)); let mc=x; ['Date','ITEM','QUANTITY','RATE','AMOUNT'].forEach((h,i)=>{parts.push(pdfText(mc+5,mhY+16,h,9.5,false)); mc+=mCols[i];});
-    const misc=padRows(inv.misc,4,newMiscRow()).slice(0,4);
-    misc.forEach((r,ri)=>{ const yy=mhY+mh+ri*rowH; parts.push(rect(x,yy,w,rowH,ri%2===1?light:white)); let cc=x; const vals=[dateDisplay(r.date),r.item,r.quantity,formatRatePlain(r.rate),r.amount?money(parseNum(r.amount)):'']; vals.forEach((v,ci)=>{ parts.push(pdfText(cc+5,yy+17,v,8.8,false)); cc+=mCols[ci]; }); });
-    const mty=mhY+mh+misc.length*rowH; parts.push(rect(x,mty,w,totalH,light)); parts.push(pdfText(x+w/2-20,mty+18,'TOTAL',12,true,'center')); parts.push(pdfText(x+w-8,mty+18,money(t.misc),10,true,'right'));
-    // Notes
-    const ny=750,nw=535,nrh=18; for(let i=0;i<4;i++) parts.push(rect(x,ny+i*nrh,nw,nrh,white,true)); parts.push('0 0 0 rg\n'); parts.push(pdfText(x+5,ny+13,'NOTES',10,false));
-    const noteLines=String(inv.notes||'').split(/\n/).slice(0,3); noteLines.forEach((n,i)=>addWrappedText(parts,x+5,ny+(i+1)*nrh+13,n,8.5,false,nw-10,9));
-    return makePdf(parts.join(''));
+    let cx=x; cols.forEach(c=>{parts.push(line(cx,y,cx,y+headerH)); cx+=c;}); parts.push(line(x+w,y,x+w,y+headerH)); parts.push(line(x,y,x+w,y)); parts.push(line(x,y+headerH,x+w,y+headerH));
+    parts.push(setWhite); cx=x;
+    const headers=['Load Date','From','To','BD/RT/\nBT/AB','','','Quant./KM','Rate','Amount'];
+    headers.forEach((h,i)=>{ if(i===4){ parts.push(pdfText(cx+(cols[4]+cols[5])/2,y+17,'Odometer',10,true,'center')); parts.push(pdfText(cx+(cols[4]+cols[5])/2,y+31,'Reading',10,true,'center')); } else if(h){ const hs=h.split('\n'); parts.push(pdfText(cx+cols[i]/2,y+20,hs[0],9.5,true,'center')); if(hs[1]) parts.push(pdfText(cx+cols[i]/2,y+33,hs[1],9.5,true,'center')); } cx+=cols[i]; });
+    parts.push(setBlack);
+    page.loads.forEach((r,ri)=>{ const yy=y+headerH+ri*rowH; parts.push(rect(x,yy,w,rowH,ri%2===0?light:white)); parts.push(setBlack); let cc=x; const vals=[dateDisplay(r.loadDate),r.from,r.to,r.type,r.odoStart,r.odoFinish,r.km,formatRatePlain(r.rate),r.amount?money(parseNum(r.amount)):'']; vals.forEach((v,ci)=>{ parts.push(pdfText(cc+cols[ci]/2,yy+17,v,8.4,false,'center')); cc+=cols[ci]; }); });
+    const continued = page.pageCount > 1 && page.pageNo < page.pageCount;
+    const ty=y+headerH+page.loads.length*rowH; parts.push(rect(x,ty,w,totalH,light)); parts.push(setBlack); parts.push(pdfText(x+w/2-20,ty+17,continued?'CONTINUED ON NEXT PAGE':'TOTAL',11,true,'center')); if(!continued) parts.push(pdfText(x+w-8,ty+17,money(t.main),10,true,'right'));
+    if(page.showMisc){
+      // misc table and notes kept on the final page
+      const my=580; parts.push(rect(x,my,w,24,dark,false)); parts.push(setWhite); parts.push(pdfText(x+w/2,my+16,'MISCELLANEOUS',11,true,'center'));
+      const mCols=[115,207,80,63,110]; const mhY=my+24, mh=23; parts.push(rect(x,mhY,w,mh,light)); parts.push(setBlack); let mc=x; ['Date','ITEM','QUANTITY','RATE','AMOUNT'].forEach((h,i)=>{parts.push(pdfText(mc+5,mhY+15,h,9.3,false)); mc+=mCols[i];});
+      const misc=padRows(inv.misc,4,newMiscRow()).slice(0,4);
+      misc.forEach((r,ri)=>{ const yy=mhY+mh+ri*25; parts.push(rect(x,yy,w,25,ri%2===1?light:white)); parts.push(setBlack); let cc=x; const vals=[dateDisplay(r.date),r.item,r.quantity,formatRatePlain(r.rate),r.amount?money(parseNum(r.amount)):'']; vals.forEach((v,ci)=>{ parts.push(pdfText(cc+5,yy+16,v,8.8,false)); cc+=mCols[ci]; }); });
+      const mty=mhY+mh+misc.length*25; parts.push(rect(x,mty,w,25,light)); parts.push(setBlack); parts.push(pdfText(x+w/2-20,mty+17,'TOTAL',11,true,'center')); parts.push(pdfText(x+w-8,mty+17,money(t.misc),10,true,'right'));
+      const ny=775,nw=575,nrh=16; for(let i=0;i<4;i++) parts.push(rect(x,ny+i*nrh,nw,nrh,white,true)); parts.push(setBlack); parts.push(pdfText(x+5,ny+12,'NOTES',9.5,false));
+      const noteLines=String(inv.notes||'').split(/\n/).slice(0,3); noteLines.forEach((n,i)=>addWrappedText(parts,x+5,ny+(i+1)*nrh+12,n,8.3,false,nw-10,9));
+    }else{
+      parts.push(setBlack); parts.push(pdfText(297.64,810,`Page ${page.pageNo} of ${page.pageCount}`,9,false,'center'));
+    }
+    return parts.join('');
   }
   function formatRatePlain(v){
     if(!v) return ''; const s=String(v); return isNumericRate(s)&&!/[a-zA-Z]/.test(s) ? '$'+parseNum(s).toFixed(2).replace(/\.00$/,'') : s;
   }
-  function makePdf(content){
-    const objects=[];
-    objects.push('<< /Type /Catalog /Pages 2 0 R >>');
-    objects.push('<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
-    objects.push('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>');
-    objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
-    objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');
-    objects.push(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`);
+  function makePdf(content){ return makePdfPages([content]); }
+  function makePdfPages(contents){
+    const pageCount = contents.length;
+    const font1Id = 3 + pageCount;
+    const font2Id = 4 + pageCount;
+    const contentStartId = 5 + pageCount;
+    const totalObjects = 2 + pageCount + 2 + pageCount;
+    const objects = new Array(totalObjects);
+    const kidRefs = Array.from({length:pageCount},(_,i)=>`${3+i} 0 R`).join(' ');
+    objects[0] = '<< /Type /Catalog /Pages 2 0 R >>';
+    objects[1] = `<< /Type /Pages /Kids [${kidRefs}] /Count ${pageCount} >>`;
+    for(let i=0;i<pageCount;i++){
+      const pageId = 3 + i;
+      const contentId = contentStartId + i;
+      objects[pageId-1] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 ${font1Id} 0 R /F2 ${font2Id} 0 R >> >> /Contents ${contentId} 0 R >>`;
+    }
+    objects[font1Id-1] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>';
+    objects[font2Id-1] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>';
+    contents.forEach((content,i)=>{ objects[contentStartId+i-1] = `<< /Length ${content.length} >>\nstream\n${content}\nendstream`; });
     let pdf='%PDF-1.4\n'; const offsets=[0];
     objects.forEach((obj,i)=>{ offsets.push(pdf.length); pdf += `${i+1} 0 obj\n${obj}\nendobj\n`; });
     const xref=pdf.length; pdf += `xref\n0 ${objects.length+1}\n0000000000 65535 f \n`;
@@ -676,10 +735,23 @@
     return new Blob([pdf],{type:'application/pdf'});
   }
   function exportPdf(inv=current){ downloadBlob(buildPdf(inv), filename(inv,'pdf')); }
-  function emailInvoice(inv=current){
-    const subject=encodeURIComponent(`Invoice-${inv.invoiceNo} (${dateLong(inv.dateFrom)} to ${dateLong(inv.dateTo)})`);
-    const body=encodeURIComponent(`Hi,\n\nPlease find invoice ${inv.invoiceNo} for ${dateLong(inv.dateFrom)} to ${dateLong(inv.dateTo)}.\n\nTotal: ${money(invoiceTotals(inv).grand)}\n\nNote: please attach the exported PDF or Excel file from the app.\n\nThanks`);
-    location.href=`mailto:?subject=${subject}&body=${body}`;
+  async function emailInvoice(inv=current){
+    const pdfBlob = buildPdf(inv);
+    const fileName = filename(inv,'pdf');
+    const subject = `Invoice-${inv.invoiceNo} (${dateLong(inv.dateFrom)} to ${dateLong(inv.dateTo)})`;
+    const text = `Hi,\n\nPlease find invoice ${inv.invoiceNo} for ${dateLong(inv.dateFrom)} to ${dateLong(inv.dateTo)}.\n\nTotal: ${money(invoiceTotals(inv).grand)}\n\nThanks`;
+    try{
+      const file = new File([pdfBlob], fileName, {type:'application/pdf'});
+      if(navigator.canShare && navigator.canShare({files:[file]})){
+        await navigator.share({title:subject, text, files:[file]});
+        showToast('PDF ready to email');
+        return;
+      }
+    }catch(e){}
+    downloadBlob(pdfBlob,fileName);
+    const mailSubject=encodeURIComponent(subject);
+    const mailBody=encodeURIComponent(text + '\n\nThe PDF has been downloaded. Please attach it if your email app did not attach it automatically.');
+    setTimeout(()=>{ location.href=`mailto:?subject=${mailSubject}&body=${mailBody}`; },350);
   }
 
   function bindEvents(){
@@ -695,8 +767,9 @@
     $('downloadPdfBtn').addEventListener('click',()=>{saveCurrentInvoice(true); exportPdf();});
     $('exportExcelBtn').addEventListener('click',()=>{saveCurrentInvoice(true); exportExcel(); showToast('Excel exported');});
     $('previewExcelBtn').addEventListener('click',()=>{saveCurrentInvoice(true); exportExcel();});
-    $('printBtn').addEventListener('click',()=>{renderPreview(); window.print();});
-    $('emailBtn').addEventListener('click',()=>emailInvoice());
+    $('printBtn').addEventListener('click',()=>{saveCurrentInvoice(true); exportPdf(); showToast('PDF saved without website footer');});
+    $('emailBtn').addEventListener('click',()=>{saveCurrentInvoice(true); emailInvoice();});
+    $('previewBackBtn').addEventListener('click',()=>showScreen('edit'));
     $('viewListBtn').addEventListener('click',()=>{listMode='list'; renderInvoiceCards();});
     $('viewGridBtn').addEventListener('click',()=>{listMode='grid'; renderInvoiceCards();});
     $('saveSettingsBtn').addEventListener('click',saveSettings);
