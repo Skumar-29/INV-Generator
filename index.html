@@ -216,7 +216,7 @@
                 <tbody></tbody>
               </table>
             </div>
-            <div class="row-actions"><button class="secondary" id="addLoadRowBtn">Add load row</button><span class="hint">Normal rows calculate KM × rate. If BD/RT/BT/AB contains C/O, the saved rate is treated as fixed payment and copied to Amount. You can still manually edit amount.</span></div>
+            <div class="row-actions"><button class="secondary" id="addLoadRowBtn">Add load row</button><span class="hint">Normal rows calculate KM × rate. If BD/RT/BT/AB contains C/O, the Rate column shows FIX RATE and the fixed amount from Settings is copied to Amount. You can still manually edit amount.</span></div>
           </div>
 
           <div class="panel">
@@ -306,7 +306,7 @@
             <input id="newTypeRateValue" inputmode="decimal" placeholder="Rate, e.g. 0.52" />
             <button class="secondary small" id="addTypeRateBtn">Add category/rate</button>
           </div>
-          <div class="hint">Add more BD/RT/BT/AB items here. For fixed change-over payment, add items such as BD C/O, RT C/O, BT C/O, AB C/O or C/O with the fixed amount. If the invoice category contains C/O, the app puts that rate directly into Amount instead of multiplying by KM.</div>
+          <div class="hint">Add more BD/RT/BT/AB items here. For fixed change-over payment, add items such as BD C/O, RT C/O, BT C/O, AB C/O or C/O with the fixed amount. If the invoice category contains C/O, the app shows FIX RATE in Rate and puts that fixed amount directly into Amount instead of multiplying by KM.</div>
           <div class="row-actions"><button class="secondary" id="saveTypeRatesBtn">Save BD/RT/BT/AB Rates</button></div>
         </div>
         <div class="panel">
@@ -381,7 +381,7 @@
   })();
 (() => {
   const STORAGE_KEY = 'aps_invoice_generator_v1';
-  const APP_VERSION = 'v13-dropdown-keeps-keyboard-closed';
+  const APP_VERSION = 'v14-changeover-fix-rate-display';
   const OLD_DEMO_PROFILE = {nameSg:'MANISH SIHAG', billTo:'SGGS PTY LTD', mobile:'0431793432', email:'Manishsihag0929gmail', bsb:'083338', accountNo:'766073879', abnAcn:'694611633'};
   const BLANK_PROFILE = {nameSg:'', billTo:'', mobile:'', email:'', bsb:'', accountNo:'', abnAcn:''};
   const DEFAULTS = {
@@ -466,7 +466,7 @@
     for(const [k,v] of Object.entries(map)){ if(normaliseOptionKey(k) === n) return v; }
     return '';
   }
-  function newLoadRow(){ return {loadDate:'', from:'', to:'', type:'', odoStart:'', odoFinish:'', km:'', rate:'', amount:'', manualAmount:false}; }
+  function newLoadRow(){ return {loadDate:'', from:'', to:'', type:'', odoStart:'', odoFinish:'', km:'', rate:'', fixedAmount:'', amount:'', manualAmount:false}; }
   function newMiscRow(){ return {date:'', item:'', quantity:'', rate:'', amount:'', manualAmount:false}; }
   function newInvoice(){
     const p = state.settings.profile;
@@ -528,14 +528,35 @@
     calculateAll();
     return current;
   }
+  function getChangeoverFixedAmount(r){
+    if(!r || !isChangeoverType(r.type)) return '';
+    if(isNumericRate(r.fixedAmount)) return parseNum(r.fixedAmount).toFixed(2);
+    if(isNumericRate(r.rate) && String(r.rate).trim().toUpperCase() !== 'FIX RATE') return parseNum(r.rate).toFixed(2);
+    const saved = getAutoRate(r.type);
+    return isNumericRate(saved) ? parseNum(saved).toFixed(2) : '';
+  }
+  function displayLoadRate(r){
+    return isChangeoverType(r && r.type) && getChangeoverFixedAmount(r) ? 'FIX RATE' : (r && r.rate ? r.rate : '');
+  }
+  function displayLoadRateFormatted(r){
+    return displayLoadRate(r) === 'FIX RATE' ? 'FIX RATE' : formatRate(displayLoadRate(r));
+  }
+  function displayLoadRatePlain(r){
+    return displayLoadRate(r) === 'FIX RATE' ? 'FIX RATE' : formatRatePlain(displayLoadRate(r));
+  }
   function calculateLoadRow(r){
     const start = parseNum(r.odoStart), finish = parseNum(r.odoFinish);
     if(r.odoStart !== '' && r.odoFinish !== '') r.km = Math.max(0, finish - start).toString();
-    if(!r.manualAmount && isNumericRate(r.rate)){
-      if(isChangeoverType(r.type)){
-        // Change-over/C/O is paid as a fixed amount, not KM × rate.
-        r.amount = parseNum(r.rate).toFixed(2);
-      }else{
+    if(isChangeoverType(r.type)){
+      const fixed = getChangeoverFixedAmount(r);
+      if(fixed){
+        r.fixedAmount = fixed;
+        r.rate = 'FIX RATE';
+        if(!r.manualAmount) r.amount = fixed;
+      }
+    }else{
+      r.fixedAmount = '';
+      if(!r.manualAmount && isNumericRate(r.rate)){
         r.amount = ((parseNum(r.km) || 0) * parseNum(r.rate)).toFixed(2);
       }
     }
@@ -653,7 +674,7 @@
         <td><input class="num" ${inputAttrs('num')} data-load="odoStart" value="${escapeHtml(r.odoStart)}"></td>
         <td><input class="num" ${inputAttrs('num')} data-load="odoFinish" value="${escapeHtml(r.odoFinish)}"></td>
         <td><input class="num readonly" data-load="km" value="${escapeHtml(r.km)}" readonly></td>
-        <td>${comboCell(r.rate,'data-load="rate"','loadRates','loadRateOptions',inputAttrs('dec')+' placeholder="Auto/manual"','money')}</td>
+        <td>${comboCell(displayLoadRate(r),'data-load="rate"','loadRates','loadRateOptions',inputAttrs('text')+' placeholder="Auto/manual"','money')}</td>
         <td><input class="money" ${inputAttrs('dec')} data-load="amount" value="${escapeHtml(r.amount)}" title="Manual edit allowed"></td>
         <td><button class="small danger" data-del-load="${i}">Delete</button></td>
       </tr>`).join('');
@@ -667,17 +688,28 @@
     if(key==='type'){
       const autoRate = getAutoRate(e.target.value);
       if(autoRate !== ''){
-        current.loads[i].rate = autoRate;
+        if(isChangeoverType(e.target.value)){
+          current.loads[i].fixedAmount = parseNum(autoRate).toFixed(2);
+          current.loads[i].rate = 'FIX RATE';
+        }else{
+          current.loads[i].fixedAmount = '';
+          current.loads[i].rate = autoRate;
+        }
         const rateInput = tr.querySelector('[data-load="rate"]');
-        if(rateInput) rateInput.value = autoRate;
+        if(rateInput) rateInput.value = current.loads[i].rate;
         current.loads[i].manualAmount = false;
       }
+    }
+    if(key==='rate' && isChangeoverType(current.loads[i].type) && isNumericRate(e.target.value)){
+      current.loads[i].fixedAmount = parseNum(e.target.value).toFixed(2);
+      current.loads[i].rate = 'FIX RATE';
+      e.target.value = 'FIX RATE';
     }
     if(key==='amount') current.loads[i].manualAmount = true;
     if(['odoStart','odoFinish','rate','type'].includes(key)) current.loads[i].manualAmount = false;
     calculateLoadRow(current.loads[i]);
-    const km=tr.querySelector('[data-load="km"]'); const amt=tr.querySelector('[data-load="amount"]');
-    km.value=current.loads[i].km||''; if(!current.loads[i].manualAmount) amt.value=current.loads[i].amount||'';
+    const km=tr.querySelector('[data-load="km"]'); const amt=tr.querySelector('[data-load="amount"]'); const rateBox=tr.querySelector('[data-load="rate"]');
+    km.value=current.loads[i].km||''; if(rateBox) rateBox.value=displayLoadRate(current.loads[i]); if(!current.loads[i].manualAmount) amt.value=current.loads[i].amount||'';
     updateTotals();
   }
   function renderMiscRows(){
@@ -769,7 +801,7 @@
         <colgroup><col style="width:12.5%"><col style="width:9.7%"><col style="width:9.2%"><col style="width:11.2%"><col style="width:9.45%"><col style="width:9.45%"><col style="width:12.4%"><col style="width:11.2%"><col style="width:14.9%"></colgroup>
         <thead><tr><th>Load Date</th><th>From</th><th>To</th><th>BD/RT/<br>BT/AB</th><th colspan="2">Odometer<br>Reading</th><th>Quant./KM</th><th>Rate</th><th>Amount</th></tr></thead>
         <tbody>
-          ${page.loads.map(r=>`<tr class="data"><td>${escapeHtml(dateDisplay(r.loadDate))}</td><td>${escapeHtml(r.from)}</td><td>${escapeHtml(r.to)}</td><td>${escapeHtml(r.type)}</td><td>${escapeHtml(r.odoStart)}</td><td>${escapeHtml(r.odoFinish)}</td><td>${escapeHtml(r.km)}</td><td>${formatRate(r.rate)}</td><td>${r.amount?money(parseNum(r.amount)):''}</td></tr>`).join('')}
+          ${page.loads.map(r=>`<tr class="data"><td>${escapeHtml(dateDisplay(r.loadDate))}</td><td>${escapeHtml(r.from)}</td><td>${escapeHtml(r.to)}</td><td>${escapeHtml(r.type)}</td><td>${escapeHtml(r.odoStart)}</td><td>${escapeHtml(r.odoFinish)}</td><td>${escapeHtml(r.km)}</td><td>${displayLoadRateFormatted(r)}</td><td>${r.amount?money(parseNum(r.amount)):''}</td></tr>`).join('')}
           <tr><td class="total-label" colspan="8">${continued?'CONTINUED ON NEXT PAGE':'TOTAL'}</td><td class="total-label">${continued?'':money(t.main)}</td></tr>
         </tbody>
       </table>
@@ -837,7 +869,7 @@
   function renderTypeRates(){
     const box=$('typeRateList'); if(!box) return;
     const types=state.settings.types||[];
-    box.innerHTML = types.length ? `<table class="rate-map-table"><thead><tr><th>BD/RT/BT/AB</th><th>Rate</th></tr></thead><tbody>${types.map(t=>`<tr><td><strong>${escapeHtml(t)}</strong></td><td><input inputmode="decimal" data-rate-type="${escapeHtml(t)}" value="${escapeHtml(state.settings.typeRates[t] || '')}" placeholder="Example: 0.52"></td></tr>`).join('')}</tbody></table>` : '<div class="empty">Add BD/RT/BT/AB options first.</div>';
+    box.innerHTML = types.length ? `<table class="rate-map-table"><thead><tr><th>BD/RT/BT/AB</th><th>Rate / Fixed Amount</th></tr></thead><tbody>${types.map(t=>`<tr><td><strong>${escapeHtml(t)}</strong></td><td><input inputmode="decimal" data-rate-type="${escapeHtml(t)}" value="${escapeHtml(state.settings.typeRates[t] || '')}" placeholder="Example: 0.52"></td></tr>`).join('')}</tbody></table>` : '<div class="empty">Add BD/RT/BT/AB options first.</div>';
   }
   function renderMiscRates(){
     const box=$('miscRateList'); if(!box) return;
@@ -983,7 +1015,7 @@
     const loads=padRows(inv.loads,9,newLoadRow()); const misc=padRows(inv.misc,4,newMiscRow());
     const html=`<html><head><meta charset="utf-8"><style>table{border-collapse:collapse;font-family:Arial}td,th{border:1px solid #48b4d8;padding:6px}th{background:#176f8b;color:white}.light{background:#c5e8f4}.total{font-weight:bold;background:#c5e8f4}</style></head><body>
     <h2>INVOICE</h2><table><tr><td>Name/SG No</td><td>${escapeHtml(inv.nameSg)}</td><td>Bill To</td><td>${escapeHtml(inv.billTo)}</td></tr><tr class="light"><td>Mobile no.</td><td>${escapeHtml(inv.mobile)}</td><td>Invoice No.</td><td>${escapeHtml(inv.invoiceNo)}</td></tr><tr><td>Email id</td><td>${escapeHtml(inv.email)}</td><td>Date From</td><td>${dateDisplay(inv.dateFrom)}</td></tr><tr class="light"><td>BSB</td><td>${escapeHtml(inv.bsb)}</td><td>Date to</td><td>${dateDisplay(inv.dateTo)}</td></tr><tr><td>Account No</td><td>${escapeHtml(inv.accountNo)}</td><td>Yello Pages Submitted</td><td>${dateLong(inv.yellowDate)}</td></tr><tr class="light"><td>ABN/ACN No</td><td>${escapeHtml(inv.abnAcn)}</td><td></td><td></td></tr></table>
-    <br><table><tr><th>Load Date</th><th>From</th><th>To</th><th>BD/RT/BT/AB</th><th>Start Odometer</th><th>Finish Odometer</th><th>Quant./KM</th><th>Rate</th><th>Amount</th></tr>${loads.map((r,i)=>`<tr class="${i%2?'':'light'}"><td>${dateDisplay(r.loadDate)}</td><td>${escapeHtml(r.from)}</td><td>${escapeHtml(r.to)}</td><td>${escapeHtml(r.type)}</td><td>${escapeHtml(r.odoStart)}</td><td>${escapeHtml(r.odoFinish)}</td><td>${escapeHtml(r.km)}</td><td>${escapeHtml(r.rate)}</td><td>${parseNum(r.amount)}</td></tr>`).join('')}<tr class="total"><td colspan="8">TOTAL</td><td>${t.main.toFixed(2)}</td></tr></table>
+    <br><table><tr><th>Load Date</th><th>From</th><th>To</th><th>BD/RT/BT/AB</th><th>Start Odometer</th><th>Finish Odometer</th><th>Quant./KM</th><th>Rate</th><th>Amount</th></tr>${loads.map((r,i)=>`<tr class="${i%2?'':'light'}"><td>${dateDisplay(r.loadDate)}</td><td>${escapeHtml(r.from)}</td><td>${escapeHtml(r.to)}</td><td>${escapeHtml(r.type)}</td><td>${escapeHtml(r.odoStart)}</td><td>${escapeHtml(r.odoFinish)}</td><td>${escapeHtml(r.km)}</td><td>${escapeHtml(displayLoadRate(r))}</td><td>${parseNum(r.amount)}</td></tr>`).join('')}<tr class="total"><td colspan="8">TOTAL</td><td>${t.main.toFixed(2)}</td></tr></table>
     <br><table><tr><th>Date</th><th>ITEM</th><th>QUANTITY</th><th>RATE</th><th>AMOUNT</th></tr>${misc.map((r,i)=>`<tr class="${i%2?'light':''}"><td>${dateDisplay(r.date)}</td><td>${escapeHtml(r.item)}</td><td>${escapeHtml(r.quantity)}</td><td>${escapeHtml(r.rate)}</td><td>${parseNum(r.amount)}</td></tr>`).join('')}<tr class="total"><td colspan="4">TOTAL</td><td>${t.misc.toFixed(2)}</td></tr></table><br><table><tr><td>NOTES</td></tr><tr><td>${escapeHtml(inv.notes||'')}</td></tr></table></body></html>`;
     downloadBlob(new Blob([html],{type:'application/vnd.ms-excel'}), filename(inv,'xls'));
   }
@@ -1056,7 +1088,7 @@
     const headers=['Load Date','From','To','BD/RT/\nBT/AB','','','Quant./KM','Rate','Amount'];
     headers.forEach((h,i)=>{ if(i===4){ parts.push(pdfText(cx+(cols[4]+cols[5])/2,y+17,'Odometer',10,true,'center')); parts.push(pdfText(cx+(cols[4]+cols[5])/2,y+31,'Reading',10,true,'center')); } else if(h){ const hs=h.split('\n'); parts.push(pdfText(cx+cols[i]/2,y+20,hs[0],9.5,true,'center')); if(hs[1]) parts.push(pdfText(cx+cols[i]/2,y+33,hs[1],9.5,true,'center')); } cx+=cols[i]; });
     parts.push(setBlack);
-    page.loads.forEach((r,ri)=>{ const yy=y+headerH+ri*rowH; parts.push(rect(x,yy,w,rowH,ri%2===0?light:white)); parts.push(columnLines(x,yy,yy+rowH,cols)); parts.push(setBlack); let cc=x; const vals=[dateDisplay(r.loadDate),r.from,r.to,r.type,r.odoStart,r.odoFinish,r.km,formatRatePlain(r.rate),r.amount?money(parseNum(r.amount)):'']; vals.forEach((v,ci)=>{ parts.push(pdfText(cc+cols[ci]/2,yy+17,v,8.4,false,'center')); cc+=cols[ci]; }); });
+    page.loads.forEach((r,ri)=>{ const yy=y+headerH+ri*rowH; parts.push(rect(x,yy,w,rowH,ri%2===0?light:white)); parts.push(columnLines(x,yy,yy+rowH,cols)); parts.push(setBlack); let cc=x; const vals=[dateDisplay(r.loadDate),r.from,r.to,r.type,r.odoStart,r.odoFinish,r.km,displayLoadRatePlain(r),r.amount?money(parseNum(r.amount)):'']; vals.forEach((v,ci)=>{ parts.push(pdfText(cc+cols[ci]/2,yy+17,v,8.4,false,'center')); cc+=cols[ci]; }); });
     const continued = page.pageCount > 1 && page.pageNo < page.pageCount;
     const ty=y+headerH+page.loads.length*rowH; parts.push(rect(x,ty,w,totalH,light)); parts.push(line(x+w-cols[8],ty,x+w-cols[8],ty+totalH)); parts.push(setBlack); parts.push(pdfText(x+w/2-20,ty+17,continued?'CONTINUED ON NEXT PAGE':'TOTAL',11,true,'center')); if(!continued) parts.push(pdfText(x+w-8,ty+17,money(t.main),10,true,'right'));
     if(page.showMisc){

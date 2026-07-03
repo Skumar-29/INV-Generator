@@ -1,3 +1,3 @@
-Invoice Generator App v13
+Invoice Generator App v14
 
-Reverted the dropdown input behavior to the previous working version, while improving keyboard handling: single tap/click still allows manual typing, and double tap/double-click opens the saved dropdown list while closing/keeping the keyboard closed. Upload all files to GitHub Pages and open with ?v=13, then use Settings > Update App.
+Adds C/O fixed-rate display logic. When BD/RT/BT/AB contains C/O, the invoice Rate column shows FIX RATE and the Amount column uses the fixed amount saved in Settings. Normal rows still calculate KM × rate. Upload all files to GitHub Pages and open with ?v=14, then use Settings > Update App.
