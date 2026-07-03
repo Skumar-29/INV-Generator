@@ -63,6 +63,13 @@
     table.edit td{border:1px solid var(--line);padding:4px;background:#fff;vertical-align:middle}
     table.edit tr:nth-child(even) td{background:var(--light)}
     table.edit input, table.edit select{border-radius:8px;padding:8px;border-color:rgba(72,180,216,.9);background:rgba(255,255,255,.95)}
+    .combo-wrap{display:grid;grid-template-columns:minmax(0,1fr) 32px;gap:3px;align-items:center}
+    .combo-wrap input{min-width:0}
+    .combo-drop{padding:8px 0!important;min-width:30px;border-radius:8px!important;box-shadow:none!important;background:#fff!important;color:var(--dark)!important;border:1px solid rgba(72,180,216,.9)!important}
+    .option-list{display:grid;gap:7px;max-height:55vh;overflow:auto;padding-top:4px}
+    .option-row{width:100%;text-align:left;background:#fff!important;color:#102f3c!important;border:1px solid rgba(72,180,216,.65)!important;box-shadow:none!important}
+    .option-row strong{color:var(--dark)}
+    .rate-map-row{display:grid;grid-template-columns:90px minmax(0,1fr);gap:8px;align-items:center;margin-bottom:8px}
     table.edit .money, table.edit .num{text-align:right}
     table.edit .readonly{background:#eef5f8!important;color:#335;opacity:.95}
     .totals-card{display:grid;gap:7px;padding:12px;border:1px solid rgba(72,180,216,.6);border-radius:13px;background:#f8fdff}
@@ -136,6 +143,7 @@
       <div class="brand">Invoice Generator</div>
       <div class="row-actions" style="margin:0">
         <button class="small secondary" id="newInvoiceBtn">New Invoice</button>
+        <button class="small secondary" id="updateAppBtnTop">Update</button>
         <button class="small" id="saveInvoiceBtnTop">Save</button>
       </div>
     </div>
@@ -270,6 +278,24 @@
         <div class="panel"><h2>Rate List</h2><div id="rateList" class="settings-list"></div><div class="row-actions"><input id="newRate" inputmode="decimal" placeholder="Example: 0.55 or FIX PAY" /><button class="secondary small" data-add-list="rates">Add</button></div></div>
         <div class="panel"><h2>Miscellaneous Item List</h2><div id="miscItemList" class="settings-list"></div><div class="row-actions"><input id="newMiscItem" placeholder="Example: Pick-up" /><button class="secondary small" data-add-list="miscItems">Add</button></div></div>
       </div>
+      <div class="grid two">
+        <div class="panel">
+          <h2>Auto Rate for BD/RT/BT/AB</h2>
+          <div id="typeRateList"></div>
+          <div class="hint">When you select BD/RT/BT/AB in a load row, the app automatically fills the matching rate. You can update these rates anytime.</div>
+          <div class="row-actions"><button class="secondary" id="saveTypeRatesBtn">Save Auto Rates</button></div>
+        </div>
+        <div class="panel">
+          <h2>Backup / Import / Update</h2>
+          <div class="row-actions">
+            <button class="secondary" id="exportBackupBtn">Export Backup</button>
+            <button class="secondary" id="importBackupBtn">Import Backup</button>
+            <button id="updateAppBtnSettings">Update App</button>
+          </div>
+          <input id="importBackupFile" type="file" accept="application/json,.json" style="display:none" />
+          <div class="hint">Backup saves all invoices, settings, drop-down lists, and auto rates as a JSON file. Update refreshes the app cache without deleting saved invoices.</div>
+        </div>
+      </div>
     </section>
   </div>
 
@@ -294,6 +320,15 @@
     </div>
   </div>
 
+  <div class="modal" id="optionPickerModal">
+    <div class="modal-card">
+      <h3 id="optionPickerTitle">Select option</h3>
+      <p>Single tap the box to type manually. Double tap the box or tap ▼ to choose from the saved list.</p>
+      <div class="option-list" id="optionPickerList"></div>
+      <div class="row-actions"><button class="ghost" id="optionPickerCloseBtn">Close</button></div>
+    </div>
+  </div>
+
   <div class="toast" id="toast">Saved</div>
 
 <script>
@@ -304,6 +339,7 @@
       profile:{nameSg:'MANISH SIHAG', billTo:'SGGS PTY LTD', mobile:'0431793432', email:'Manishsihag0929gmail', bsb:'083338', accountNo:'766073879', abnAcn:'694611633'},
       nextInvoiceNo:25,
       types:['BD','RT','BT','AB'],
+      typeRates:{BD:'0.52', RT:'0.55', BT:'0.55', AB:'0.55'},
       cities:['MEL','BNE','SYD','ADL','Perth','PER','C/O','DAR','HOB','CBR','OOL','TSV','CNS'],
       rates:['0.52','0.55','FIX PAY'],
       miscItems:['Pick-up','Delivery']
@@ -332,6 +368,7 @@
     out.settings = {...out.settings, ...(data.settings||{})};
     out.settings.profile = {...out.settings.profile, ...((data.settings||{}).profile||{})};
     for(const k of ['types','cities','rates','miscItems']) out.settings[k] = Array.isArray(out.settings[k]) ? out.settings[k] : DEFAULTS.settings[k];
+    out.settings.typeRates = {...DEFAULTS.settings.typeRates, ...(out.settings.typeRates||{})};
     out.invoices = Array.isArray(data.invoices) ? data.invoices : [];
     return out;
   }
@@ -429,29 +466,80 @@
     if(type==='dec') return 'inputmode="decimal"';
     return '';
   }
+  function comboCell(value, dataAttr, optionKey, listId, extraAttrs='', cls=''){
+    return `<div class="combo-wrap"><input class="combo-input ${cls||''}" list="${listId}" ${extraAttrs||''} ${dataAttr} data-option-key="${optionKey}" value="${escapeHtml(value||'')}" title="Single tap to type. Double tap or tap ▼ for list."><button type="button" class="combo-drop" data-option-key="${optionKey}" title="Open list">▼</button></div>`;
+  }
+  function getOptionList(key){
+    if(key==='types') return state.settings.types || [];
+    if(key==='cities') return state.settings.cities || [];
+    if(key==='rates') return state.settings.rates || [];
+    if(key==='miscItems') return state.settings.miscItems || [];
+    return [];
+  }
+  function bindOptionPickers(scope){
+    scope.querySelectorAll('.combo-input').forEach(inp=>{
+      inp.addEventListener('dblclick',()=>openOptionPicker(inp, inp.dataset.optionKey));
+    });
+    scope.querySelectorAll('.combo-drop').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const input = btn.parentElement.querySelector('.combo-input');
+        openOptionPicker(input, btn.dataset.optionKey);
+      });
+    });
+  }
+  function openOptionPicker(input,key){
+    const titles={types:'BD/RT/BT/AB',cities:'City',rates:'Rate',miscItems:'Miscellaneous item'};
+    $('optionPickerTitle').textContent='Select '+(titles[key]||'option');
+    const opts=getOptionList(key);
+    $('optionPickerList').innerHTML = opts.length ? opts.map(v=>`<button type="button" class="option-row" data-opt="${escapeHtml(v)}"><strong>${escapeHtml(v)}</strong></button>`).join('') : '<div class="empty">No saved options yet. Add options in Settings.</div>';
+    $('optionPickerList').querySelectorAll('[data-opt]').forEach(btn=>btn.addEventListener('click',()=>{
+      input.value = btn.dataset.opt;
+      input.dispatchEvent(new Event('input',{bubbles:true}));
+      closeOptionPicker();
+      setTimeout(()=>input.focus(),50);
+    }));
+    $('optionPickerModal').classList.add('show');
+  }
+  function closeOptionPicker(){ $('optionPickerModal').classList.remove('show'); }
+  function getAutoRate(type){
+    const key=String(type||'').trim();
+    if(!key) return '';
+    return state.settings.typeRates[key] || state.settings.typeRates[key.toUpperCase()] || '';
+  }
+
   function renderLoadRows(){
     const tbody = $('loadTable').querySelector('tbody');
     tbody.innerHTML = current.loads.map((r,i)=>`
       <tr data-i="${i}">
         <td><input ${inputAttrs('date')} data-load="loadDate" value="${escapeHtml(r.loadDate)}"></td>
-        <td><input list="cityOptions" data-load="from" value="${escapeHtml(r.from)}"></td>
-        <td><input list="cityOptions" data-load="to" value="${escapeHtml(r.to)}"></td>
-        <td><input list="typeOptions" data-load="type" value="${escapeHtml(r.type)}"></td>
+        <td>${comboCell(r.from,'data-load="from"','cities','cityOptions')}</td>
+        <td>${comboCell(r.to,'data-load="to"','cities','cityOptions')}</td>
+        <td>${comboCell(r.type,'data-load="type"','types','typeOptions')}</td>
         <td><input class="num" ${inputAttrs('num')} data-load="odoStart" value="${escapeHtml(r.odoStart)}"></td>
         <td><input class="num" ${inputAttrs('num')} data-load="odoFinish" value="${escapeHtml(r.odoFinish)}"></td>
         <td><input class="num readonly" data-load="km" value="${escapeHtml(r.km)}" readonly></td>
-        <td><input class="money" list="rateOptions" ${inputAttrs('dec')} data-load="rate" value="${escapeHtml(r.rate)}"></td>
+        <td>${comboCell(r.rate,'data-load="rate"','rates','rateOptions', inputAttrs('dec'), 'money')}</td>
         <td><input class="money" ${inputAttrs('dec')} data-load="amount" value="${escapeHtml(r.amount)}" title="Manual edit allowed"></td>
         <td><button class="small danger" data-del-load="${i}">Delete</button></td>
       </tr>`).join('');
     tbody.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',onLoadInput));
+    bindOptionPickers(tbody);
     tbody.querySelectorAll('[data-del-load]').forEach(btn=>btn.addEventListener('click',()=>{ current.loads.splice(Number(btn.dataset.delLoad),1); if(current.loads.length<1) current.loads.push(newLoadRow()); renderLoadRows(); updateTotals(); }));
   }
   function onLoadInput(e){
     const tr=e.target.closest('tr'), i=Number(tr.dataset.i), key=e.target.dataset.load;
     current.loads[i][key]=e.target.value;
+    if(key==='type'){
+      const autoRate = getAutoRate(e.target.value);
+      if(autoRate !== ''){
+        current.loads[i].rate = autoRate;
+        const rateInput = tr.querySelector('[data-load="rate"]');
+        if(rateInput) rateInput.value = autoRate;
+        current.loads[i].manualAmount = false;
+      }
+    }
     if(key==='amount') current.loads[i].manualAmount = true;
-    if(['odoStart','odoFinish','rate'].includes(key)) current.loads[i].manualAmount = false;
+    if(['odoStart','odoFinish','rate','type'].includes(key)) current.loads[i].manualAmount = false;
     calculateLoadRow(current.loads[i]);
     const km=tr.querySelector('[data-load="km"]'); const amt=tr.querySelector('[data-load="amount"]');
     km.value=current.loads[i].km||''; if(!current.loads[i].manualAmount) amt.value=current.loads[i].amount||'';
@@ -462,13 +550,14 @@
     tbody.innerHTML = current.misc.map((r,i)=>`
       <tr data-i="${i}">
         <td><input ${inputAttrs('date')} data-misc="date" value="${escapeHtml(r.date)}"></td>
-        <td><input list="miscItemOptions" data-misc="item" value="${escapeHtml(r.item)}"></td>
+        <td>${comboCell(r.item,'data-misc="item"','miscItems','miscItemOptions')}</td>
         <td><input class="num" ${inputAttrs('dec')} data-misc="quantity" value="${escapeHtml(r.quantity)}"></td>
-        <td><input class="money" list="rateOptions" ${inputAttrs('dec')} data-misc="rate" value="${escapeHtml(r.rate)}"></td>
+        <td>${comboCell(r.rate,'data-misc="rate"','rates','rateOptions', inputAttrs('dec'), 'money')}</td>
         <td><input class="money" ${inputAttrs('dec')} data-misc="amount" value="${escapeHtml(r.amount)}"></td>
         <td><button class="small danger" data-del-misc="${i}">Delete</button></td>
       </tr>`).join('');
     tbody.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',onMiscInput));
+    bindOptionPickers(tbody);
     tbody.querySelectorAll('[data-del-misc]').forEach(btn=>btn.addEventListener('click',()=>{ current.misc.splice(Number(btn.dataset.delMisc),1); if(current.misc.length<1) current.misc.push(newMiscRow()); renderMiscRows(); updateTotals(); }));
   }
   function onMiscInput(e){
@@ -592,27 +681,77 @@
   function renderSettings(){
     $('settingNextNo').value=state.settings.nextInvoiceNo||1;
     $('settingBillTo').value=state.settings.profile.billTo||'';
-    renderList('typeList','types'); renderList('cityList','cities'); renderList('rateList','rates'); renderList('miscItemList','miscItems');
+    renderList('typeList','types'); renderList('cityList','cities'); renderList('rateList','rates'); renderList('miscItemList','miscItems'); renderTypeRates();
   }
+  function renderTypeRates(){
+    const box=$('typeRateList'); if(!box) return;
+    const types=state.settings.types||[];
+    box.innerHTML = types.map(t=>`<div class="rate-map-row"><label style="margin:0">${escapeHtml(t)}</label><input inputmode="decimal" data-rate-type="${escapeHtml(t)}" value="${escapeHtml(state.settings.typeRates[t] || '')}" placeholder="Example: 0.52"></div>`).join('') || '<div class="empty">Add BD/RT/BT/AB options first.</div>';
+  }
+  function saveTypeRates(){
+    document.querySelectorAll('[data-rate-type]').forEach(inp=>{ state.settings.typeRates[inp.dataset.rateType] = inp.value.trim(); });
+    saveState(); showToast('Auto rates saved');
+  }
+
   function renderList(containerId,key){
     const arr=state.settings[key]||[];
     $(containerId).innerHTML=arr.map((v,i)=>`<div class="setting-row"><input value="${escapeHtml(v)}" data-list-key="${key}" data-list-i="${i}"><button class="small secondary" data-update-list="${key}" data-list-i="${i}">Update</button><button class="small danger" data-remove-list="${key}" data-list-i="${i}">Remove</button></div>`).join('');
     $(containerId).querySelectorAll('[data-update-list]').forEach(btn=>btn.addEventListener('click',()=>{
-      const input=btn.parentElement.querySelector('input'); state.settings[btn.dataset.updateList][Number(btn.dataset.listI)] = input.value.trim(); saveState(); refreshDatalists(); renderSettings(); showToast('Drop-down updated');
+      const input=btn.parentElement.querySelector('input'); const key=btn.dataset.updateList; const oldVal=state.settings[key][Number(btn.dataset.listI)]; const newVal=input.value.trim(); state.settings[key][Number(btn.dataset.listI)] = newVal; if(key==='types'){ state.settings.typeRates[newVal] = state.settings.typeRates[oldVal] || state.settings.typeRates[newVal] || ''; if(newVal!==oldVal) delete state.settings.typeRates[oldVal]; } saveState(); refreshDatalists(); renderSettings(); showToast('Drop-down updated');
     }));
     $(containerId).querySelectorAll('[data-remove-list]').forEach(btn=>btn.addEventListener('click',()=>{
-      state.settings[btn.dataset.removeList].splice(Number(btn.dataset.listI),1); saveState(); refreshDatalists(); renderSettings(); showToast('Drop-down removed');
+      const key=btn.dataset.removeList; const removed=state.settings[key][Number(btn.dataset.listI)]; state.settings[key].splice(Number(btn.dataset.listI),1); if(key==='types') delete state.settings.typeRates[removed]; saveState(); refreshDatalists(); renderSettings(); showToast('Drop-down removed');
     }));
   }
   function addListItem(key,inputId){
     const val=$(inputId).value.trim(); if(!val) return;
     if(!state.settings[key].includes(val)) state.settings[key].push(val);
+    if(key==='types' && state.settings.typeRates[val] === undefined) state.settings.typeRates[val] = '';
     $(inputId).value=''; saveState(); refreshDatalists(); renderSettings(); showToast('Drop-down option added');
   }
   function saveSettings(){
     state.settings.nextInvoiceNo = Math.max(1,parseInt($('settingNextNo').value,10)||1);
     state.settings.profile.billTo = $('settingBillTo').value || '';
     saveState(); showToast('Settings saved'); fillForm();
+  }
+
+  function backupFileName(){
+    const stamp = new Date().toISOString().slice(0,19).replace(/[T:]/g,'-');
+    return `Invoice-Generator-Backup-${stamp}.json`;
+  }
+  function exportBackup(){
+    collectForm(); saveCurrentInvoice(true);
+    const payload={app:'Invoice Generator', version:'v5-dropdown-backup-update', exportedAt:new Date().toISOString(), state};
+    downloadBlob(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}), backupFileName());
+    showToast('Backup exported');
+  }
+  function importBackupFile(file){
+    if(!file) return;
+    const reader=new FileReader();
+    reader.onload=()=>{
+      try{
+        const data=JSON.parse(reader.result);
+        const imported=data.state || data;
+        if(!imported || (!imported.settings && !imported.invoices)) throw new Error('Invalid backup');
+        if(!confirm('Import backup and replace current invoice data on this device?')) return;
+        state=mergeDefaults(imported);
+        saveState();
+        current=newInvoice();
+        fillForm(); renderInvoiceCards(); renderSettings(); showScreen('all');
+        showToast('Backup imported');
+      }catch(e){ alert('Could not import this backup file.'); }
+      $('importBackupFile').value='';
+    };
+    reader.readAsText(file);
+  }
+  async function updateAppNow(){
+    showToast('Updating app...');
+    try{
+      if('caches' in window){ const keys=await caches.keys(); await Promise.all(keys.filter(k=>k.includes('invoice-generator')).map(k=>caches.delete(k))); }
+      if('serviceWorker' in navigator){ const regs=await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map(r=>r.update().catch(()=>{}))); }
+    }catch(e){}
+    const base = location.origin + location.pathname.replace(/index\.html$/,'');
+    location.href = base + '?v=' + Date.now();
   }
 
   function filename(inv=current, ext='pdf'){
@@ -789,6 +928,14 @@
     $('viewListBtn').addEventListener('click',()=>{listMode='list'; renderInvoiceCards();});
     $('viewGridBtn').addEventListener('click',()=>{listMode='grid'; renderInvoiceCards();});
     $('saveSettingsBtn').addEventListener('click',saveSettings);
+    $('saveTypeRatesBtn').addEventListener('click',saveTypeRates);
+    $('exportBackupBtn').addEventListener('click',exportBackup);
+    $('importBackupBtn').addEventListener('click',()=>$('importBackupFile').click());
+    $('importBackupFile').addEventListener('change',e=>importBackupFile(e.target.files[0]));
+    $('updateAppBtnTop').addEventListener('click',updateAppNow);
+    $('updateAppBtnSettings').addEventListener('click',updateAppNow);
+    $('optionPickerCloseBtn').addEventListener('click',closeOptionPicker);
+    $('optionPickerModal').addEventListener('click',e=>{if(e.target.id==='optionPickerModal') closeOptionPicker();});
     document.querySelectorAll('[data-add-list]').forEach(btn=>btn.addEventListener('click',()=>{
       const map={types:'newType',cities:'newCity',rates:'newRate',miscItems:'newMiscItem'}; addListItem(btn.dataset.addList,map[btn.dataset.addList]);
     }));

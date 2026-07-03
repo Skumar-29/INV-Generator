@@ -1,22 +1,24 @@
-Invoice Generator App - Updated Version
+Invoice Generator App - v5 Dropdown, Auto Rates, Backup and Update
 
 Upload all files inside this folder to the root of your GitHub repository.
 Do not upload only the ZIP file.
 
 Important updates in this version:
-- PDF layout top details aligned more closely with the supplied invoice PDF.
-- Yellow Pages Submitted box made taller so the label and date do not overlap.
-- Save PDF and Download PDF now use the app's built-in PDF export, not browser print, so the GitHub/web link is not printed at the bottom.
-- Preview screen now has a Back to Invoice button.
-- PDF stays on one page when there are 10 or fewer load rows. More than 10 load rows will continue onto extra PDF pages.
-- Email PDF now uses the iPhone/Android share sheet when supported so the PDF file can be attached to an email app. If the browser does not support file sharing, the app downloads the PDF first and opens an email draft for manual attachment.
-- App controls and preview actions have been cleaned up.
+- Added visible dropdown buttons (▼) for From, To, BD/RT/BT/AB, Rate, and Miscellaneous Item fields.
+- Single tap/click still allows manual typing.
+- Double tap/double click the input, or tap ▼, to open the saved dropdown list.
+- Selecting BD/RT/BT/AB can now automatically fill the Rate field.
+- Settings now include Auto Rate for BD/RT/BT/AB, so rates can be updated later.
+- Added Export Backup and Import Backup for all invoices, settings, dropdown lists, and auto rates.
+- Added Update App button, similar to the Work Diary app, to refresh the app cache without deleting saved invoices.
+- Retains previous fixes: mobile top details order, PDF layout, no website link in PDF, 1-page PDF up to 10 load rows, clearer column lines, and proper top details alignment.
 
 After uploading to GitHub:
 1. Open the repository.
 2. Upload/replace index.html, manifest.json, sw.js, icon.svg, and README.txt in the root.
 3. Commit changes.
 4. Wait 1-5 minutes for GitHub Pages to update.
-5. On iPhone Safari, refresh the app. If the old app still shows, close Safari and reopen, or clear website data for the GitHub Pages site.
+5. Open the app and press Update, or open the app link with ?v=5 at the end.
 
-Update v4: mobile Top Details order adjusted so Date to appears immediately below Date From, and BSB moved lower.
+Example:
+https://your-app-link/?v=5
