@@ -1,7 +1,7 @@
 {
   "name": "Invoice Generator",
   "short_name": "Invoices",
-  "start_url": "./index.html",
+  "start_url": "./index.html?v=11",
   "display": "standalone",
   "background_color": "#eef7fb",
   "theme_color": "#176f8b",

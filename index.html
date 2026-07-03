@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#176f8b" />
   <title>Invoice Generator</title>
   <link rel="manifest" href="manifest.json" />
@@ -21,11 +21,12 @@
       --radius:16px;
     }
     *{box-sizing:border-box}
+    html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
     html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;overflow-x:hidden}
     body{min-height:100vh;padding-bottom:env(safe-area-inset-bottom);touch-action:pan-y}
     /* Only the app button header is fixed. The invoice content below stays normally scrollable.
        Wide tables scroll inside their own boxes so the whole page does not get locked or dragged sideways. */
-    button,input,select,textarea{font:inherit}
+    button,input,select,textarea{font:inherit;-webkit-text-size-adjust:100%;text-size-adjust:100%}
     button{border:0;border-radius:12px;padding:11px 14px;background:var(--dark);color:#fff;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.12);cursor:pointer}
     button.secondary{background:#fff;color:var(--dark);border:1px solid var(--line)}
     button.ghost{background:transparent;color:var(--dark);border:1px solid rgba(23,111,139,.35);box-shadow:none}
@@ -52,7 +53,7 @@
     .three{grid-template-columns:repeat(3,minmax(0,1fr))}
     .four{grid-template-columns:repeat(4,minmax(0,1fr))}
     label{display:block;font-weight:800;font-size:12px;color:#315569;margin:0 0 4px}
-    input,select,textarea{width:100%;border:1px solid rgba(72,180,216,.8);border-radius:10px;background:#fff;padding:10px 10px;color:#102f3c;outline:none}
+    input,select,textarea{width:100%;border:1px solid rgba(72,180,216,.8);border-radius:10px;background:#fff;padding:10px 10px;color:#102f3c;outline:none;font-size:16px!important;line-height:1.25;touch-action:manipulation}
     input[type="date"]{text-align:left;-webkit-appearance:none;appearance:none}
     input[type="date"]::-webkit-date-and-time-value{text-align:left}
     input::placeholder, textarea::placeholder{color:#9db0b9}
@@ -69,7 +70,7 @@
     table.edit th{background:var(--dark);color:#fff;text-align:center;padding:9px 6px;font-size:13px;border:1px solid var(--dark)}
     table.edit td{border:1px solid var(--line);padding:4px;background:#fff;vertical-align:middle}
     table.edit tr:nth-child(even) td{background:var(--light)}
-    table.edit input, table.edit select{border-radius:8px;padding:8px;border-color:rgba(72,180,216,.9);background:rgba(255,255,255,.95)}
+    table.edit input, table.edit select{border-radius:8px;padding:8px;border-color:rgba(72,180,216,.9);background:rgba(255,255,255,.95);font-size:16px!important;line-height:1.25}
     .combo-wrap{display:block}
     .combo-wrap input{min-width:0}
     .combo-input{cursor:text}
@@ -80,7 +81,7 @@
     .rate-map-table th{background:var(--dark);color:#fff;text-align:left;padding:8px;border:1px solid var(--line);font-size:13px}
     .rate-map-table td{border:1px solid var(--line);padding:6px;background:#fff}
     .rate-map-table tr:nth-child(even) td{background:var(--light)}
-    .rate-map-table input{border-radius:8px;padding:8px}
+    .rate-map-table input{border-radius:8px;padding:8px;font-size:16px!important;line-height:1.25}
     table.edit .money, table.edit .num{text-align:right}
     table.edit .readonly{background:#eef5f8!important;color:#335;opacity:.95}
     .totals-card{display:grid;gap:7px;padding:12px;border:1px solid rgba(72,180,216,.6);border-radius:13px;background:#f8fdff}
@@ -367,6 +368,17 @@
   <div class="toast" id="toast">Saved</div>
 
 <script>
+  // iPhone Safari can zoom the page when focusing an input. Keep all edit boxes at 16px+
+  // and lock the viewport scale for this PWA so the page returns/stays at normal size.
+  (function keepNormalZoom(){
+    const vp = document.querySelector('meta[name="viewport"]');
+    const content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover';
+    function apply(){ if(vp && vp.content !== content) vp.content = content; }
+    apply();
+    window.addEventListener('pageshow', apply);
+    document.addEventListener('focusin', apply, true);
+    document.addEventListener('focusout', () => setTimeout(() => { apply(); window.scrollTo(window.scrollX, window.scrollY); }, 80), true);
+  })();
 (() => {
   const STORAGE_KEY = 'aps_invoice_generator_v1';
   const APP_VERSION = 'v8-changeover-frozen-buttons';
